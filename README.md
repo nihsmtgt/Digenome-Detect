@@ -4,13 +4,16 @@ Digenome-Seq analysis tool
 ## Summary
 digenome-detect is a tool for detection of Digenome-Seq cleavage site.
 
+## Install
+
 ## Typical Analysis Workflow
 
 ### Preparation
+Digenome-detect can analyze BAM files prepared for genotyping according to the GATK best practice. However, please note that the duplicated reads should be removed completely from BAM files before this analysis. 
 
   1. Map FastQ files to Reference Genome
 ```
-usr/local/bwa-0.7.15/bwa mem -t 20 -P -M \
+/usr/local/bwa-0.7.15/bwa mem -t 20 -P -M \
     -R "@RG\tID:1\tSM:Sample_DGS_HAP_NT\tPL:ILLUMINA" \
     Homo_sapiens.GRCh38.dna_sm.primary_assembly_fix_20210506.fa.gz \
     DGS_HAP_NT_FDPL210060334-1a_HVKLYDSXY_L2_1.fq.gz  DGS_HAP_NT_FDPL210060334-1a_HVKLYDSXY_L2_2.fq.gz
