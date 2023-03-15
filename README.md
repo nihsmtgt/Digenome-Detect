@@ -6,6 +6,31 @@ digenome-detect is a tool for detection of Digenome-Seq cleavage site.
 
 ## Install
 
+### Prerequisite
+- OS: Linux
+  - We tested this system on CentOS7 and CentOS8
+- Rust
+  - Install Rust programming language from https://www.rust-lang.org/tools/install
+- Java17
+  - Install Java17 or later from https://jdk.java.net/java-se-ri/17
+  - Set JAVA_HOME and PATH environment variables on your environment
+### Build and Install
++ Download the source code from GitHub
+```
+git clone https://github.com/nihsmtgt/Digenome-detect.git
+```
++ Build and install
+```
+cd Digenome-detect/rust
+cargo build
+cp target/debug/digenome_seek /usr/local/bin
+cd ..
+mvn compile
+mvn package
+mkdir /path/to/install
+cp target/digenome_detect-1-jar-with-dependencies.jar /path/to/install
+```
+
 ## Typical Analysis Workflow
 
 ### Preparation
