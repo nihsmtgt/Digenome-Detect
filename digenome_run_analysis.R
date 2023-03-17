@@ -57,3 +57,5 @@ result2=dplyr::intersect(arrange(result2, data) |> distinct(chr, ID, .keep_all =
                   arrange(result2, desc(data)) |> distinct(chr, ID, .keep_all = T))
 
 write_csv(filter(result2, data=="RNP(+)"), paste0("./", output, "_run_distinct.csv"))
+
+stopCluster(cl)
