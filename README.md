@@ -106,7 +106,7 @@ chr2    41666711        41666713        CLSCORE=4.17;DP=77.0;CS=0.01;Ratio=0.889
 - DP: Read depth
 - CS: Cleavage score of re-implmented digenome-toolkit method
 - Ratio: (reverse tails + forward heads)/(reverse tails + forward heads + reverse heads + forward tails)
- - i.e.  = cleaved ends/all ends 
+  - i.e.  = cleaved ends/all ends 
 - FISHER: Strand bias similar to GATK
 - RevHead, RevTail, FwdHead, FwdTail: count of these ends
 - MQ0: MQ0 read count indicating repeats
