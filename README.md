@@ -94,7 +94,7 @@ java -jar /path/to/install/digenome_detect-1-jar-with-dependencies.jar digenome_
  This combination of options are used in the published article.
 
 ## Result
-The analysis results are outputted for each chromosome.
+The result files are generated for each chromosome.
 ### Example of output
 ```
 chr2    41525655        41525657        CLSCORE=20.56;DP=58.0;CS=0.85;Ratio=1.000;FISHER=48.728;RevHead=0;RevTail=16;FwdHead=6;FwdTail=0;MQ0=0;CLIPS=0;CONTROL=0,0,1,1;CONTROL_CLSCORE=1.20
