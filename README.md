@@ -87,3 +87,8 @@ java -Djava.io.tmpdir=./tmp -Duse_async_io_write_samtools=true -Xmx8g \
    -o Sample_DGS_HAP_NT.realign.bam \
    -filterNoBases
  ```
+6. Run analysis
+```
+java -jar /path/to/install/digenome_detect-1-jar-with-dependencies.jar digenome_detect.Main --inplace-depth2 true --bam Sample_DGS_HAP_NT.realign.bam --out Sample_DGS_HAP_NT.70x --threads 24 > log_NT.txt 2>&1
+ ```
+ This combination of options are used in the published article.
