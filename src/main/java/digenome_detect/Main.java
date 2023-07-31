@@ -19,6 +19,7 @@ import java.util.concurrent.Executors;
 public class Main {
     static String out = null;
     static String bamPath = null;
+    static String controlPath = null;
     static String digenomeDetectPath = "/ldisk1/202205_digenome_mod/digenome-detect_mq10_2depth/rust/target/debug/digenome_seek";
     static int threads = 8;
     static String mqfilter = "0";
@@ -37,6 +38,8 @@ public class Main {
             for(int i = 0; i<argv.length; i++){
                 if(argv[i].equals("--bam")){
                     bamPath = argv[i+1];
+                }else if(argv[i].equals("--control")){
+                    controlPath = argv[i+1];
                 }else if(argv[i].equals("--out")){
                     out = argv[i+1];
                 }else if(argv[i].equals("--inplace-depth")){
@@ -82,18 +85,18 @@ public class Main {
                 System.err.println("Use --out option for output prefix");
                 System.exit(-1);
             }
-            run(bamPath, out);
+            run(bamPath, controlPath, out);
         }catch(Exception e){
             System.err.println(e.getMessage());
             System.exit(-1);
         }
     }
-    private static void run(String bamPath, String out) throws IOException, InterruptedException{
+    private static void run(String bamPath, String controlPath, String out) throws IOException, InterruptedException{
         ExecutorService service = Executors.newFixedThreadPool(threads);
         CountDownLatch latch = new CountDownLatch(regions.length);
         List<DetectTask> tasks = new ArrayList<DetectTask>();
         for ( int i = 0; i<regions.length; i++){
-            tasks.add(new DetectTask(bamPath, out, regions[i], latch));
+            tasks.add(new DetectTask(bamPath, controlPath, out, regions[i], latch));
         }
         for(DetectTask t: tasks){
             service.submit(t);
@@ -103,16 +106,19 @@ public class Main {
     }
     public static class DetectTask  implements Runnable {
         private String bamPath = null;
+        private String controlPath = null;
         private String out = null;
         private CountDownLatch latch;
         private String chr;
         private DigenomeDetect detect = null;
-        public DetectTask(String bamPath_, String out_, String chr_, CountDownLatch latch_) throws IOException{
+        public DetectTask(String bamPath_, String controlPath_, String out_, String chr_, CountDownLatch latch_) throws IOException{
             bamPath = bamPath_;
+            controlPath = controlPath_;
             out = out_;
             chr = chr_;
             latch = latch_;
             detect = new DigenomeDetect(detectWidth, new FileOutputStream(out + "." + chr + ".bed"));
+            detect.setControlBam(controlPath);
 
             detect.setInplaceDepth(inplaceDepth);
             detect.setInplaceDepth2(inplaceDepth2);
