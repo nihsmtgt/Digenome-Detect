@@ -35,6 +35,7 @@ public class DigenomeDetect {
     int[] block_rev_depth = new int[READ_LENGTH*4];
     boolean debug = false;
     PrintWriter bed = null;
+    ControlChecker checker = null;
     public DigenomeDetect(int detectionWidth, OutputStream ostream) throws IOException{
         DETECT_WIDTH = detectionWidth;
         bed = new PrintWriter(new BufferedWriter(new OutputStreamWriter(ostream)));
@@ -42,6 +43,9 @@ public class DigenomeDetect {
     public DigenomeDetect(int detectionWidth) {
         DETECT_WIDTH = detectionWidth;
         bed = new PrintWriter(new BufferedWriter(new OutputStreamWriter(System.out)));
+    }
+    public void setControlBam(String bamPath){
+        checker = new ControlChecker(bamPath);
     }
     public void setInplaceDepth(boolean b){
         this.inplace_depth = b;
@@ -75,9 +79,6 @@ public class DigenomeDetect {
     public void push(ArrayList<String> list){
         // System.out.println("#####" + list.get(0));
         int pos = get_center_genomic(list.get(0));
-        if(pos == 29569418){
-           debug = true;
-           }
         if(pos - lastPos < 10 || cluster.size() == 0){
             cluster.add(list);
         }else if(cluster.size() > 0){
@@ -104,9 +105,37 @@ public class DigenomeDetect {
             if( best.table[1][1] > 2 && best.table[0][0] > 2){
                 double cscore = (best.cscore == null)? 0.0: best.cscore.getScore();
                 bed.printf(best.chr + "\t" + best.start + "\t" + best.end
-                    + "\tPHRED="+ format("%.2f", best.phred)+";DP="+ best.median + ";CS=%.2f;"
+                    + "\tCLSCORE="+ format("%.2f", best.phred)+";DP="+ best.median + ";CS=%.2f;"
                     + "Ratio="+ format("%.3f", best.ratio)+";FISHER="+format("%.3f", best.fisher)+";RevHead="+ best.table[0][1] +";RevTail="+ best.table[1][1]
-                    + ";FwdHead=" + best.table[0][0] + ";FwdTail="+ best.table[1][0]+";MQ0=%d;CLIPS=%d\n", cscore, best.mq0, best.clips);
+                    + ";FwdHead=" + best.table[0][0] + ";FwdTail="+ best.table[1][0]+";MQ0=%d;CLIPS=%d", cscore, best.mq0, best.clips);
+                if(checker != null){
+                    int[] control = checker.check(best.chr, best.start, best.end);
+                    int cont_depth_start = checker.getDepth(best.chr, best.start-1);
+                    int cont_depth_end = checker.getDepth(best.chr, best.end+1);
+                    double score = 0.0;
+                    if(inplace_depth2){
+                        score = calcProb_with_inplaceDepth2(
+                            cont_depth_start, cont_depth_end,
+                            control[0],
+                            control[3],
+                            best.end-best.start+1);
+                    }else if(inplace_depth){
+                        score = calcProb_with_inplaceDepth(
+                            cont_depth_start, cont_depth_end,
+                            control[0],
+                            control[3],
+                            best.end-best.start+1);
+                    }else {
+                        score = calcProb(
+                            (cont_depth_start+cont_depth_end)/2,
+                            control[0],
+                            control[3],
+                            best.end-best.start+1);
+                    }
+
+                    bed.print(";CONTROL=" + control[0] + "," + control[1] + "," + control[2] + ","+ control[3] +";CONTROL_CLSCORE="+format("%.2f", score));
+                }
+                bed.print("\n");
                 bed.flush();
             }
         }
@@ -191,17 +220,19 @@ public class DigenomeDetect {
                     int fh_start = center - width + frame;
                     int fh_end =   center - width + frame + width + 1;
                     if(inplace_depth){
-                        result.phred = calcProb_with_inplaceDepth(
+                        result.inplace = calcProb_with_inplaceDepth(
                             block_depth[center+10], block_depth[center-10],
                             sum(block_fwd_heads, fh_start, fh_end),
                             sum(block_rev_tails, rt_start, rt_end),
                             width);
+                        result.phred = result.inplace;
                     }else if(inplace_depth2){
-                        result.phred = calcProb_with_inplaceDepth2(
+                        result.inplace2 = calcProb_with_inplaceDepth2(
                             block_fwd_depth[center+10], block_rev_depth[center-10],
                             sum(block_fwd_heads, fh_start, fh_end),
                             sum(block_rev_tails, rt_start, rt_end),
                             width);
+                        result.phred = result.inplace2;
                     }else {
                         result.phred = calcProb(
                             (int)median_mean[0],
@@ -289,6 +320,9 @@ public class DigenomeDetect {
         CleavageScore cscore;
         int[][] table;
         double phred;
+        double background;
+        double inplace;
+        double inplace2;
         double fisher;
         double ratio;
         double median;
@@ -376,7 +410,6 @@ public class DigenomeDetect {
         double flambda = ((double)fdepth)/READ_LENGTH * (width + 1);
         double rlambda = ((double)rdepth)/READ_LENGTH * (width + 1);
         try {
-
             double denomitor = logBigInteger(factorialHavingLargeResult(fcount));
             double numerator = fcount * Math.log10(flambda) - (flambda * Math.log10(Math.E));
             // double numerator = Math.log10(Math.pow(flambda, fcount) * Math.exp(-flambda));
