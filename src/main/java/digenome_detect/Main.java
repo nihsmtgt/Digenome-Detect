@@ -58,6 +58,18 @@ public class Main {
                     debug = true;
                 }else if(argv[i].equals("--siteseq")){
                     is_siteseq = true;
+                }else if(argv[i].equals("--calc_fisher")){
+                    if(argv[i+1].equals("true")){
+                        DigenomeDetect.calc_fisher = true;
+                    }else {
+                        DigenomeDetect.calc_fisher = false;
+                    }
+                }else if(argv[i].equals("--calc_cleavage_score")){
+                    if(argv[i+1].equals("true")){
+                        DigenomeDetect.calc_cs = true;
+                    }else {
+                        DigenomeDetect.calc_cs = false;
+                    }
                 }else if(argv[i].equals("--mq")){
                     mqfilter = argv[i+1];
                 }else if(argv[i].equals("--width")){
@@ -88,6 +100,7 @@ public class Main {
             run(bamPath, controlPath, out);
         }catch(Exception e){
             System.err.println(e.getMessage());
+            e.printStackTrace();
             System.exit(-1);
         }
     }
@@ -95,13 +108,16 @@ public class Main {
         ExecutorService service = Executors.newFixedThreadPool(threads);
         CountDownLatch latch = new CountDownLatch(regions.length);
         List<DetectTask> tasks = new ArrayList<DetectTask>();
+        System.err.println("running " + regions.length + " regions");
         for ( int i = 0; i<regions.length; i++){
+            System.err.println("bam: " + bamPath + " control: " + controlPath + " out: " + out + " chr: " + regions[i]);
             tasks.add(new DetectTask(bamPath, controlPath, out, regions[i], latch));
         }
         for(DetectTask t: tasks){
             service.submit(t);
         }
-        latch.await();
+        // wait for all tasks to finish
+        latch.await();        
         service.shutdown();
     }
     public static class DetectTask  implements Runnable {
@@ -125,6 +141,37 @@ public class Main {
             detect.setSiteSeq(is_siteseq);
             detect.setDebug(debug);
         }
+        public class AutoCloseableThread extends Thread implements AutoCloseable {
+            Process proc = null;
+            public AutoCloseableThread(Process p){
+                proc = p;
+            }
+            public void run(){
+              try (BufferedReader br = new BufferedReader(new InputStreamReader(proc.getInputStream()))){
+                ArrayList<String> buf = new ArrayList<String>(DigenomeDetect.READ_LENGTH*4+10);
+                String line = null;
+                while(null != (line = br.readLine())){
+                    if(line.startsWith("//")){
+                        if(buf.size() > DigenomeDetect.READ_LENGTH*3){
+                            detect.push(buf);
+                        }
+                        buf = new ArrayList<String>(DigenomeDetect.READ_LENGTH*4+10);
+                    }else {
+                        buf.add(line);
+                    }
+                }
+              }catch(IOException e){
+                  System.err.println(e.getMessage());
+                  e.printStackTrace();
+              }
+            }
+            @Override
+            public void close() throws Exception {
+                if(detect != null){
+                    detect.close();
+                }
+            }
+        }
 
         @Override
         public void run(){
@@ -135,29 +182,7 @@ public class Main {
             // Process proc = rt.exec(cmd);
             ProcessBuilder builder = new ProcessBuilder(digenomeDetectPath, chr, bamPath, mqfilter);
             Process proc = builder.start();
-            Thread stdThread = new Thread(){
-                public void run(){
-                  try {
-                    BufferedReader br = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-                    ArrayList<String> buf = new ArrayList<String>(DigenomeDetect.READ_LENGTH*4+10);
-                    String line = null;
-                    while(null != (line = br.readLine())){
-                        if(line.startsWith("//")){
-                            if(buf.size() > DigenomeDetect.READ_LENGTH*3){
-                                detect.push(buf);
-                            }
-                            buf = new ArrayList<String>(DigenomeDetect.READ_LENGTH*4+10);
-                        }else {
-                            buf.add(line);
-                        }
-                    }
-                    detect.close();
-                  }catch(IOException e){
-                    e.printStackTrace();
-                    throw new RuntimeException(e.getMessage());
-                  }
-                }
-            };
+            AutoCloseableThread stdThread = new AutoCloseableThread(proc);
             stdThread.start();
             Thread errThread = new Thread(){
               public void run(){

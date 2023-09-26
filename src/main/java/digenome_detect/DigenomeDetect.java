@@ -4,14 +4,17 @@ import java.io.*;
 import java.lang.Math;
 import java.math.BigInteger;
 import java.util.*;
+import java.lang.AutoCloseable;
 // import java.util.zip.GZIPInputStream;
 import org.apache.commons.math3.distribution.ExponentialDistribution;
 import org.broadinstitute.hellbender.utils.*;
 
-public class DigenomeDetect {
+public class DigenomeDetect implements AutoCloseable{
     public static final double LOG_2 = Math.log(2.0);
     public static final double LOG_10 = Math.log(10.0);
     public boolean is_siteseq = false;
+    public static boolean calc_cs = false;
+    public static boolean calc_fisher = true;
     public boolean inplace_depth = false;
     public boolean inplace_depth2 = false;
 
@@ -45,7 +48,9 @@ public class DigenomeDetect {
         bed = new PrintWriter(new BufferedWriter(new OutputStreamWriter(System.out)));
     }
     public void setControlBam(String bamPath){
-        checker = new ControlChecker(bamPath);
+        if(bamPath != null){
+            checker = new ControlChecker(bamPath);
+        }
     }
     public void setInplaceDepth(boolean b){
         this.inplace_depth = b;
@@ -56,10 +61,16 @@ public class DigenomeDetect {
     public void setSiteSeq(boolean b){
         this.is_siteseq = b;
     }
+    public void setCalcCS(boolean b){
+        this.calc_cs = b;
+    }
+    public void setCalcFisher(boolean b){
+        this.calc_fisher = b;
+    }
     public void setDebug(boolean b){
         this.debug = b;
     }
-    public void close() throws IOException {
+    public void close() throws Exception {
         if(cluster.size() > 0){
             handle(cluster);
         }
@@ -104,10 +115,28 @@ public class DigenomeDetect {
             Result best = chooseBest(results);
             if( best.table[1][1] > 2 && best.table[0][0] > 2){
                 double cscore = (best.cscore == null)? 0.0: best.cscore.getScore();
-                bed.printf(best.chr + "\t" + best.start + "\t" + best.end
-                    + "\tCLSCORE="+ format("%.2f", best.phred)+";DP="+ best.median + ";CS=%.2f;"
-                    + "Ratio="+ format("%.3f", best.ratio)+";FISHER="+format("%.3f", best.fisher)+";RevHead="+ best.table[0][1] +";RevTail="+ best.table[1][1]
-                    + ";FwdHead=" + best.table[0][0] + ";FwdTail="+ best.table[1][0]+";MQ0=%d;CLIPS=%d", cscore, best.mq0, best.clips);
+                // bed.printf(best.chr + "\t" + best.start + "\t" + best.end
+                //    + "\tCLSCORE="+ format("%.2f", best.phred)+";DP="+ best.median + ";CS=%.2f;"
+                //    + "Ratio="+ format("%.3f", best.ratio)+";FISHER="+format("%.3f", best.fisher)+";RevHead="+ best.table[0][1] +";RevTail="+ best.table[1][1]
+                //    + ";FwdHead=" + best.table[0][0] + ";FwdTail="+ best.table[1][0]+";MQ0=%d;CLIPS=%d", cscore, best.mq0, best.clips);
+                bed.printf(best.chr + "\t" + best.start + "\t" + best.end + "\t");
+                bed.printf("CLSCORE=%.2f;", best.phred);
+                bed.printf("DP=%.1f;", best.median);
+                if(calc_cs){
+                    bed.printf("CS=%.2f;", cscore);
+                }
+                bed.printf("CS=%.2f;", cscore);
+                bed.printf("Ratio=%.3f;", best.ratio);
+                if(calc_fisher){
+                    bed.printf("FISHER=%.4f;", best.fisher);
+                }
+                bed.printf("RevHead=" + best.table[0][1] + ";");
+                bed.printf("RevTail=" + best.table[1][1] + ";");
+                bed.printf("FwdHead=" + best.table[0][0] + ";");
+                bed.printf("FwdTail=" + best.table[1][0] + ";");
+                bed.printf("MQ0=%d;", best.mq0);
+                bed.printf("CLIPS=%d;", best.clips);
+                
                 if(checker != null){
                     int[] control = checker.check(best.chr, best.start, best.end);
                     int cont_depth_start = checker.getDepth(best.chr, best.start-1);
@@ -201,7 +230,7 @@ public class DigenomeDetect {
         }
         if(!skip){
             CleavageScore cscore = null;
-            if(!is_siteseq){
+            if(!is_siteseq && calc_cs){
                cscore =  calcCleavageScore(block_pos, block_depth, block_fwd_heads, block_rev_tails, center);
             }
             ArrayList<Result> results = new ArrayList<Result>();
@@ -248,7 +277,9 @@ public class DigenomeDetect {
                     result.table[0][1] = sum(block_rev_heads, fh_start, fh_end);
                     result.table[1][0] = sum(block_fwd_tails, rt_start, rt_end);
                     result.table[1][1] = sum(block_rev_tails, rt_start, rt_end);
-                    result.fisher = Math.abs(-10*Math.log10(Fisher.exactTest(result.table)));
+                    if(calc_fisher){
+                        result.fisher = Math.abs(-10*Math.log10(Fisher.exactTest(result.table)));
+                    }
                     result.start = block_pos[fh_start];
                     result.end = block_pos[fh_start+width];
                     result.mq0 =  sum(block_mq0, fh_start-2, fh_end+2);
@@ -277,14 +308,27 @@ public class DigenomeDetect {
                     results.add(result);
                 }
             }
-            // TODO: choose best result
             return results;
         }
         return null;
     }
     private Result chooseBest(ArrayList<Result> candidates){
-        // fisher
-        Comparator fisherComp = new Comparator<Result>(){
+        // without fisher
+        final Comparator<Result> phredComp = new Comparator<Result>(){
+            public int compare(Result r1, Result r2){
+                if(r1.phred > r2.phred){
+                    return -1;
+                }else if(r1.phred < r2.phred){
+                    return 1;
+                }
+                return 0;
+            }
+            public boolean equals(Comparator<Result> r){
+                return true;
+            }
+        };
+        // by fisher
+        final Comparator fisherComp = new Comparator<Result>(){
             public int compare(Result r1, Result r2){
                 if(r1.fisher > r2.fisher){
                     return -1;
@@ -302,8 +346,9 @@ public class DigenomeDetect {
             }
         };
         Result best = candidates.get(0);
+        Comparator comp = (calc_fisher)? fisherComp: phredComp;
         for(Result r: candidates){
-            if(fisherComp.compare(best, r) > 0){
+            if(comp.compare(best, r) > 0){
                 best = r;
             }
         }
