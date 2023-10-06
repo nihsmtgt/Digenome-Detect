@@ -113,3 +113,52 @@ chr2    41666711        41666713        CLSCORE=4.17;DP=77.0;CS=0.01;Ratio=0.889
 - CLIPS: Count of clipped end
 - CONTROL: When you use --control [bam file] option, these counts of ends at same position in control's BAM file will be reported.
 - CONTROL_CLSCORE: When you use --control [bam file] option, the CLSCORE at same position in control's BAM file will be reported.
+
+----
+## Command-Line Options
+
+### Required Options
+
+- `--bam [file]`: Specifies the path to the input BAM file.
+- `--out [prefix]`: Specifies the output prefix for generated files.
+
+### Optional Options
+
+- `--control [file]`: Specifies the path to the control BAM file.
+- `--threads, -t [number]`: Specifies the number of threads to use. Default is `8`.
+- `--regions, --region [comma-separated values]`: Specifies target regions like 'chr19:12345..23456'. Use `GRCm` to specify mouse chromosomes. 
+- `--debug`: Enables debug mode.
+- `--siteseq`: Enables siteseq analysis.
+- `--calc_fisher [true/false]`: Enables or disables Fisher's exact test for checking strand bias on cleaved sites.
+- `--calc_cleavage_score [true/false]`: Enables or disables cleavage score calculation.
+- `--mq [number]`: Specifies the minimum mapping quality filter. Default is `0` (i.e. no filter).
+- `--width [number]`: Specifies the detection width, which allows for the inclusion of cleaved sites as well as overhangs. Default is `3`.
+- `--inplace-depth`: Enables in-place depth analysis. If not specified, background depth (depth of out-of-stack reads) is used.
+- `--inplace-depth2`: Enables secondary in-place depth analysis. If not specified, background depth (depth of out-of-stack reads) is used.
+- `--help`: Displays help information.
+
+### Examples
+
+- To run the program with a specific BAM file and output prefix:
+
+  ```bash
+  java digenome_detect.Main --bam input.bam --out output_prefix
+  ```
+
+- To run the program with 4 threads and specified regions:
+
+  ```bash
+  java digenome_detect.Main --bam input.bam --out output_prefix --threads 4 --regions "chr1,chr2,chr3"
+  ```
+
+- To enable debug mode:
+
+  ```bash
+  java digenome_detect.Main --bam input.bam --out output_prefix --debug
+  ```
+
+## Notes
+
+- Make sure to specify both `--bam` and `--out` options; otherwise, the program will terminate with an error.
+- If `--regions` is not specified, it defaults to human chromosomes.
+
