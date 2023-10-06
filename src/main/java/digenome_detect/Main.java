@@ -48,6 +48,8 @@ public class Main {
                     inplaceDepth2 = true;
                 }else if(argv[i].equals("--threads") || argv[i].equals("-t")){
                     threads = Integer.parseInt(argv[i+1]);
+                }else if(argv[i].equals("--relaxed_filter") && argv[i+1].equals("true")){
+                    DigenomeDetect.relaxed_filter = true;
                 }else if(argv[i].equals("--regions") || argv[i].equals("--region")){
                     if(argv[i+1].startsWith("GRCm")){
                         regions = mouse_chromosomes;
@@ -58,7 +60,7 @@ public class Main {
                     debug = true;
                 }else if(argv[i].equals("--siteseq")){
                     is_siteseq = true;
-                }else if(argv[i].equals("--calc_fisher")){
+                }else if(argv[i].equals("--strandbias")){
                     if(argv[i+1].equals("true")){
                         DigenomeDetect.calc_fisher = true;
                     }else {
@@ -81,6 +83,9 @@ public class Main {
                     System.out.println("   -t or --threads: number of threads");
                     System.out.println("   --region       : target regions like 'chr19:12345..23456'");
                     System.exit(0);
+                }else if(argv[i].startsWith("--")){
+                    System.err.println("Unknown option: " + argv[i]);
+                    System.exit(-1);
                 }
             }
             if(regions == null){

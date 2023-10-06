@@ -129,7 +129,7 @@ chr2    41666711        41666713        CLSCORE=4.17;DP=77.0;CS=0.01;Ratio=0.889
 - `--regions, --region [comma-separated values]`: Specifies target regions like 'chr19:12345..23456'. Use `GRCm` to specify mouse chromosomes. 
 - `--debug`: Enables debug mode.
 - `--siteseq`: Enables siteseq analysis.
-- `--calc_fisher [true/false]`: Enables or disables Fisher's exact test for checking strand bias on cleaved sites.
+- `--strandbias [true/false]`: Enables or disables Fisher's exact test for evaluating strand bias on cleaved sites.
 - `--calc_cleavage_score [true/false]`: Enables or disables cleavage score calculation.
 - `--mq [number]`: Specifies the minimum mapping quality filter. Default is `0` (i.e. no filter).
 - `--width [number]`: Specifies the detection width, which allows for the inclusion of cleaved sites as well as overhangs. Default is `3`.
