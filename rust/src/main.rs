@@ -18,6 +18,7 @@ fn main() {
     let capacity: usize = read_length as usize * 2 + margin as usize * 2;
     let argv: Vec<String> = std::env::args().collect();
     let mut tname = String::from(&argv[1]);
+    let mqfilter: u8 = String::from(&argv[3]).parse().unwrap();
     // let mut writer: LineWriter<File> = LineWriter::new(std::fs::File::create(&argv[3]).unwrap());
 
     // println!("{}", tname);
@@ -40,6 +41,8 @@ fn main() {
     let mut vec_reverse_tails: VecDeque<u32> = VecDeque::with_capacity(capacity);
     let mut vec_mq0:           VecDeque<u32> = VecDeque::with_capacity(capacity);
     let mut vec_softclips:     VecDeque<u32> = VecDeque::with_capacity(capacity);
+    let mut vec_fwd_depth:     VecDeque<u32> = VecDeque::with_capacity(capacity);
+    let mut vec_rev_depth:     VecDeque<u32> = VecDeque::with_capacity(capacity);
 
     let mut vec_keep: VecDeque<u32> = VecDeque::with_capacity(capacity);
 
@@ -66,6 +69,8 @@ fn main() {
         let mut forward_tails = 0;
         let mut reverse_heads = 0;
         let mut reverse_tails = 0;
+        let mut rev_depth = 0;
+        let mut fwd_depth = 0;
         let mut softclips = 0;
         let mut mq0 = 0;
         let mut secondary = 0;
@@ -76,6 +81,15 @@ fn main() {
             if alignment.record().is_secondary() || alignment.record().mapq() == 0 {
                 secondary += 1;
                 continue;
+            }
+            // mq filter
+            if alignment.record().mapq() < mqfilter {
+                continue;
+            }
+            if alignment.record().is_reverse() {
+                rev_depth += 1;
+            }else {
+                fwd_depth += 1;
             }
             let cigar = alignment.record().cigar();
             if alignment.is_head() {
@@ -106,6 +120,8 @@ fn main() {
         vec_reverse_heads.push_back(reverse_heads);
         vec_reverse_tails.push_back(reverse_tails);
         vec_mq0.push_back(mq0);
+        vec_fwd_depth.push_back(fwd_depth);
+        vec_rev_depth.push_back(rev_depth);
         vec_softclips.push_back(softclips);
         // write!(writer, "{} {}\n", vec_depth.len(), capacity as u32).unwrap();
         if vec_depth.len() > capacity {
@@ -117,6 +133,8 @@ fn main() {
             vec_reverse_tails.pop_front();
             vec_mq0.pop_front();
             vec_softclips.pop_front();
+            vec_fwd_depth.pop_front();
+            vec_rev_depth.pop_front();
         }
         // chr22   32563973        111     20      0       0       2       0       89
         /*
@@ -132,10 +150,10 @@ fn main() {
         if (reverse_tails > 3 || forward_heads > 3) && vec_depth.len() > 0 {
             // skip anomalies
             if reverse_tails > 3 && (reverse_heads > reverse_tails || reverse_tails < forward_tails) {
-                eprintln!("skip at type 1 anomaries at {}", pileup.pos());
+                // eprintln!("skip at type 1 anomaries at {}", pileup.pos());
                 continue;
             }else if forward_heads > 3 && (forward_heads < reverse_heads || forward_heads < forward_tails)  { // large forward heads
-                eprintln!("skip at type 2 anomaries at {}", pileup.pos());
+                // eprintln!("skip at type 2 anomaries at {}", pileup.pos());
                 continue;
             }
             /*
@@ -162,8 +180,8 @@ fn main() {
                     // write!(writer, "---- len={}, at {}\n", vec_depth.len(), p).unwrap();
                     println!("---- len={}, at {}", vec_depth.len(), p);
                     for x in 0..vec_depth.len() {
-                        println!("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
-                            tname, vec_pos[x],  vec_depth[x], vec_forward_heads[x], vec_forward_tails[x], vec_reverse_heads[x], vec_reverse_tails[x], vec_mq0[x], vec_softclips[x]);
+                        println!("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+                            tname, vec_pos[x],  vec_depth[x], vec_forward_heads[x], vec_forward_tails[x], vec_reverse_heads[x], vec_reverse_tails[x], vec_mq0[x], vec_softclips[x], vec_fwd_depth[x], vec_rev_depth[x]);
                     }
                 },
                 None => (println!("bad")),
@@ -173,7 +191,7 @@ fn main() {
         println!("//");
         stdout().flush();
     }
-    process::exit(0x00)
+    process::exit(0x00);
 }
 
 fn leading_insertions(rec: &Record) -> i64 {
