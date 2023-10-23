@@ -13,6 +13,11 @@ It filters and analyzes data based on various quality metrics and outputs the re
 ## Requirements
 Java Development Kit (JDK) 11 or later
 
+## Build
+```
+javac ScoreCheck.java
+```
+
 ## Usage
 ```
 java ScoreCheck [options] <case.bed> <control.bed>
