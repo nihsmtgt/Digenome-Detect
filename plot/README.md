@@ -11,8 +11,9 @@ It filters and analyzes data based on various quality metrics and outputs the re
 - Generate graphical visualizations of the score distributions.
 
 ## Requirements
-Java Development Kit (JDK) 11 or later
-
+- Java Development Kit (JDK) 11 or later
+- Web Browser for visualization
+  
 ## Build
 ```
 javac ScoreCheck.java
