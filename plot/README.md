@@ -19,9 +19,9 @@ java ScoreCheck [options] <case.bed> <control.bed>
 ```
 
 ## Options
---out [outputPath]: Specify the output file path.
---threshold [value]: Set the score threshold to filter out low-quality cleavage-likelihood scores (default: 7.0).
---debug: Enable debug mode to dump scores to log.
+- --out [outputPath]: Specify the output file path.
+- --threshold [value]: Set the score threshold to filter out low-quality cleavage-likelihood scores (default: 7.0).
+- --debug: Enable debug mode to dump scores to log.
 
 ## Input Files
 Two bed files of result of Digenome-detect for RGEN and CONTROL. 
