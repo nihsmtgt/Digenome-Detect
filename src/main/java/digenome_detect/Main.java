@@ -20,7 +20,7 @@ public class Main {
     static String out = null;
     static String bamPath = null;
     static String controlPath = null;
-    static String digenomeDetectPath = "/ldisk1/202205_digenome_mod/digenome-detect_mq10_2depth/rust/target/debug/digenome_seek";
+    static String digenomeDetectPath = "/usr/local/bin/digenome_seek";
     static int threads = 8;
     static String mqfilter = "0";
     static String[] regions = null;
