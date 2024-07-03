@@ -394,9 +394,8 @@ class ScoreCheck {
     
         for (String line : lines) {
             String[] parts = line.split("\\t");
-            double middleScore = (Double.parseDouble(parts[0]) + Double.parseDouble(parts[1])) / 2;
-    
-            xValues.append("'").append(middleScore).append("',");
+            double maxScore = Double.parseDouble(parts[1]);    
+            xValues.append("'").append(maxScore).append("',");
             ratioYValues.append(parts[4]).append(",");
             percentageYValues.append(parts[5]).append(",");
         }
