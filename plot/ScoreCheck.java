@@ -108,6 +108,56 @@ class ScoreCheck {
         }
         return filtered;
     }
+
+    // filter redundant scores within a sample
+    public static ArrayList<Score> filterRedundantScores3(ArrayList<Score> scores){
+        // sort by chromosome position order
+        Collections.sort(scores);
+        
+        ArrayList<Score> filtered = new ArrayList<>();
+        int highestpos = 0;
+        boolean redundant = false;
+        // remove adjuscent scores located within 10 bases
+        for(int i = 0; i < scores.size() - 1; i++){
+            Score s1 = scores.get(i);
+            Score s2 = scores.get(i+1);
+            // remove both scores;
+            if(s1.chrom.equals(s2.chrom) && Math.abs(s2.start - s1.start) < 10){
+                if (redundant) {
+                    if (s2.score > scores.get(highestpos).score) {
+                        scores.get(highestpos).toRemove = true;
+                        highestpos = i+1;                      
+                    }
+                    else{
+                        scores.get(i+1).toRemove = true;
+                    }
+                }
+                else{
+                // remove lower score
+                System.err.println("removing redundant " + s1.chrom + ":" + s1.start + "-" + s1.end + "\t" + s1.score);
+                if (s1.score > s2.score) {
+                    scores.get(i+1).toRemove = true;
+                    highestpos =  i;                   
+                }
+                else{
+                    scores.get(i).toRemove = true;
+                    highestpos = i+1;
+                }
+                redundant = true;
+                }
+            }
+            else{
+                redundant = false;
+            }
+        }
+        for(Score s : scores){
+            if(!s.toRemove){
+                filtered.add(s);
+            }
+        }
+        return filtered;
+    }
+
     // filter redundant scores within a sample
     public static ArrayList<Score> filterRedundantScores(ArrayList<Score> scores){
         // sort by chromosome position order
@@ -174,8 +224,8 @@ class ScoreCheck {
         this.cases = filterLowQualityScores(this.cases, scoreThreshold);
         this.controls = filterLowQualityScores(this.controls, scoreThreshold);
         // filter redundant(adjacent) scores
-        this.cases = filterRedundantScores(this.cases);
-        this.controls = filterRedundantScores(this.controls);
+        this.cases = filterRedundantScores3(this.cases);
+        this.controls = filterRedundantScores3(this.controls);
         // merge data
         ArrayList<Score> merged = new ArrayList<>();
         merged.addAll(this.cases);
