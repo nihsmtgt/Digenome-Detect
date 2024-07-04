@@ -205,9 +205,10 @@ public class DigenomeDetect implements AutoCloseable{
         if(is_siteseq){
            skip = false;
            inplace_depth = true;
-        }else if(median_mean[0] > 500 || median_mean[1] > 500){ // on repeat
-            skip = true;
         }
+ //       else if(median_mean[0] > 500 || median_mean[1] > 500){ // on repeat
+ //           skip = true;
+ //       }
   //    for(int i = center-3; i<center+3; i++){
   //        if(block_rev_tails[i-1] < block_rev_heads[i-1] || block_rev_tails[i-1] < block_fwd_tails[i]
   //            || block_fwd_heads[i] < block_rev_heads[i-1] || block_fwd_heads[i] < block_fwd_tails[i]){
