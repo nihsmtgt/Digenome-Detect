@@ -44,8 +44,9 @@ public class Main {
                     out = argv[i+1];
                 }else if(argv[i].equals("--inplace-depth")){
                     inplaceDepth = true;
-                }else if(argv[i].equals("--inplace-depth2")){
-                    inplaceDepth2 = true;
+                }else if(argv[i].equals("--median-depth")){
+                    inplaceDepth = false;
+                    inplaceDepth2 = false;
                 }else if(argv[i].equals("--threads") || argv[i].equals("-t")){
                     threads = Integer.parseInt(argv[i+1]);
                 }else if(argv[i].equals("--regions") || argv[i].equals("--region")){
