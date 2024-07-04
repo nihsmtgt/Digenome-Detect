@@ -2,7 +2,7 @@
 Digenome-Seq analysis tool
 
 ## Summary
-digenome-detect is a tool for detection of Digenome-Seq cleavage site.
+Digenome-detect is a tool for detection of Digenome-Seq cleavage site.
 
 ## Install
 
@@ -37,21 +37,24 @@ cp target/digenome_detect-1-jar-with-dependencies.jar /path/to/install
 Digenome-detect can analyze BAM files prepared for genotyping according to the GATK best practice. However, please note that the duplicated reads should be removed completely from BAM files before this analysis. 
 
   1. Map FastQ files to Reference Genome
+  example:
 ```
 /usr/local/bwa-0.7.15/bwa mem -t 20 -P -M \
     -R "@RG\tID:1\tSM:Sample_DGS_HAP_NT\tPL:ILLUMINA" \
     Homo_sapiens.GRCh38.dna_sm.primary_assembly_fix_20210506.fa.gz \
     DGS_HAP_NT_FDPL210060334-1a_HVKLYDSXY_L2_1.fq.gz  DGS_HAP_NT_FDPL210060334-1a_HVKLYDSXY_L2_2.fq.gz  |samtools view -Sb - -o DGS_HAP_NT_FDPL210060334-1a_HVKLYDSXY_L2_1.unsort.bam
 ```
-  2. Sort BAM file 
+  2. Sort BAM file
+  example: 
 ```
 samtools sort -T . -m 12G --threads 4 --output-fmt BAM \
     -o Sample_DGS_HAP_NT.sort.bam \
     DGS_HAP_NT_FDPL210060334-1a_HVKLYDSXY_L2_1.unsort.bam
 ```
-  3. (Option) Run DepthOfCoverage for normalization if you want to normalize read depth for performance evaluation
+  3. (Option) Check the coverage of the data. If there is a large discrepancy of the coverage between the data of the sample and negative control data, coverage normalization is recommended.
+  example:
 ```
-java -X32g -jar GenomeAnalysisTK.jar -T DepthOfCoverage \
+java -jar GenomeAnalysisTK.jar -T DepthOfCoverage \
    -I Sample_DGS_HAP_NT.sort.bam \
    -L  wgs_calling_regions.hg38.interval_list \
    -R  Homo_sapiens.GRCh38.dna_sm.primary_assembly_fix_20210506.fa \
@@ -59,6 +62,7 @@ java -X32g -jar GenomeAnalysisTK.jar -T DepthOfCoverage \
    -omitIntervals -omitBaseOutput
 ```
   4. De-duplication
+  example:
   ```
 java -Djava.io.tmpdir=./tmp -Duse_async_io_write_samtools=true -Xmx8g \
       -jar picard-2.26.11.jar MarkDuplicates \
@@ -70,8 +74,9 @@ java -Djava.io.tmpdir=./tmp -Duse_async_io_write_samtools=true -Xmx8g \
       REMOVE_DUPLICATES=true
 ```
 　5．Realignment
+example:
  ```
- java -X32g -jar GenomeAnalysisTK.jar \
+ java -jar GenomeAnalysisTK.jar \
    -T RealignerTargetCreator -I \Sample_DGS_HAP_NT.dedup.bam \
    -R Homo_sapiens.GRCh38.dna_sm.primary_assembly_fix_20210506.fa \
    -disable_auto_index_creation_and_locking_when_reading_rods \
@@ -79,7 +84,7 @@ java -Djava.io.tmpdir=./tmp -Duse_async_io_write_samtools=true -Xmx8g \
    -o Sample_DGS_HAP_NT.interval_list \
    -known Mills_and_1000G_gold_standard.indels.hg38.vcf.gz \
    -known dbsnp_146.hg38.vcf.gz
- java -X32g -jar GenomeAnalysisTK.jar \
+ java -jar GenomeAnalysisTK.jar \
    -T IndelRealigner -I Sample_DGS_HAP_NT.dedup.bam \
    -R Homo_sapiens.GRCh38.dna_sm.primary_assembly_fix_20210506.fa \
    -disable_auto_index_creation_and_locking_when_reading_rods \
@@ -88,10 +93,12 @@ java -Djava.io.tmpdir=./tmp -Duse_async_io_write_samtools=true -Xmx8g \
    -filterNoBases
  ```
 ### analysis
+Following combination of options are used in the published article.
 ```
-java -jar /path/to/install/digenome_detect-1-jar-with-dependencies.jar digenome_detect.Main --inplace-depth2 true --bam Sample_DGS_HAP_NT.realign.bam --out Sample_DGS_HAP_NT.70x --threads 24 > log_NT.txt 2>&1
+java -jar /path/to/install/digenome_detect-1-jar-with-dependencies.jar digenome_detect.Main --bam Sample_DGS_HAP_NT.realign.bam --out Sample_DGS_HAP_NT.70x --threads 24 > log_NT.txt 2>&1
  ```
- This combination of options are used in the published article.
+
+- After running digenome_detect.Main on data from a sample treated with a genome editing tool and a negative control sample, run ./plot/ScoreCheck.java according to the README file to obtain a list of candidate off-target sites.
 
 ## Result
 The result files are generated for each chromosome.
@@ -111,8 +118,6 @@ chr2    41666711        41666713        CLSCORE=4.17;DP=77.0;CS=0.01;Ratio=0.889
 - RevHead, RevTail, FwdHead, FwdTail: count of these ends
 - MQ0: MQ0 read count indicating repeats
 - CLIPS: Count of clipped end
-- CONTROL: When you use --control [bam file] option, these counts of ends at same position in control's BAM file will be reported.
-- CONTROL_CLSCORE: When you use --control [bam file] option, the CLSCORE at same position in control's BAM file will be reported.
 
 ----
 ## Command-Line Options
@@ -124,17 +129,13 @@ chr2    41666711        41666713        CLSCORE=4.17;DP=77.0;CS=0.01;Ratio=0.889
 
 ### Optional Options
 
-- `--control [file]`: Specifies the path to the control BAM file.
 - `--threads, -t [number]`: Specifies the number of threads to use. Default is `8`.
-- `--regions, --region [comma-separated values]`: Specifies target regions like 'chr19:12345..23456'. Use `GRCm` to specify mouse chromosomes. 
+- `--regions, --region [comma-separated values]`: Specifies target regions like 'chr19:12345..23456'. If `--regions` is not specified, it defaults to human chromosomes. Use `GRCm` to specify mouse chromosomes. 
 - `--debug`: Enables debug mode.
-- `--siteseq`: Enables siteseq analysis.
 - `--strandbias [true/false]`: Enables or disables Fisher's exact test for evaluating strand bias on cleaved sites.
 - `--calc_cleavage_score [true/false]`: Enables or disables cleavage score calculation.
-- `--mq [number]`: Specifies the minimum mapping quality filter. Default is `0` (i.e. no filter).
+- `--mq [number]`: Specifies the minimum mapping quality of reads used for the score calculation. Default is `0`. (mq = 0 reads are always excluded regardless of this value.)
 - `--width [number]`: Specifies the detection width, which allows for the inclusion of cleaved sites as well as overhangs. Default is `3`.
-- `--inplace-depth`: Enables in-place depth analysis. If not specified, background depth (depth of out-of-stack reads) is used.
-- `--inplace-depth2`: Enables secondary in-place depth analysis. If not specified, background depth (depth of out-of-stack reads) is used.
 - `--help`: Displays help information.
 
 ### Examples
@@ -160,5 +161,4 @@ chr2    41666711        41666713        CLSCORE=4.17;DP=77.0;CS=0.01;Ratio=0.889
 ## Notes
 
 - Make sure to specify both `--bam` and `--out` options; otherwise, the program will terminate with an error.
-- If `--regions` is not specified, it defaults to human chromosomes.
-
+- Resulting bed file is not the final list of candidate off-target sites. Please run ./plot/ScoreCheck.java to remove false positives and determine a CLSCORE threshold. 

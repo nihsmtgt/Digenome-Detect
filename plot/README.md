@@ -4,11 +4,9 @@ ScoreCheck is a Java program designed to process and analyze results of Digenome
 It filters and analyzes data based on various quality metrics and outputs the results.
 
 ## Features
-- Filter data based on a score threshold.
 - Remove redundant scores that are adjacent.
-- Filter out low-quality scores.
-- Group scores by their value for both cases and controls.
-- Generate graphical visualizations of the score distributions.
+- Filter false positives based on a number of read with low mapping quality and clipped read.
+- Determine the CLSCORE threshold by comparing the data with negative control data.
 
 ## Requirements
 - Java Development Kit (JDK) 11 or later
@@ -30,7 +28,7 @@ java ScoreCheck [options] <case.bed> <control.bed>
 - --debug: Enable debug mode to dump scores to log.
 
 ## Input Files
-Two bed files of result of Digenome-detect for RGEN and CONTROL. 
+Two bed files resulting from Digenome-detect_Main for the sample data and the negative control data. 
 
 ## Output
 The program outputs:
