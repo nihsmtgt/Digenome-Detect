@@ -17,7 +17,6 @@ public class DigenomeDetect implements AutoCloseable{
     public static boolean calc_fisher = true;
     public boolean inplace_depth = false;
     public boolean inplace_depth2 = false;
-    public static boolean relaxed_filter = false;
 
     // numbers greater than 10^MAX_DIGITS_10 or e^MAX_DIGITS_E are considered unsafe ('too big') for floating point operations
     private static final int MAX_DIGITS_10 = 294;
@@ -329,25 +328,26 @@ public class DigenomeDetect implements AutoCloseable{
             }
         };
         // by fisher
-        final Comparator fisherComp = new Comparator<Result>(){
-            public int compare(Result r1, Result r2){
-                if(r1.fisher > r2.fisher){
-                    return -1;
-                }else if(r1.fisher < r2.fisher){
-                    return 1;
-                }else if(r1.phred > r2.phred){
-                    return -1;
-                }else if(r1.phred < r2.phred){
-                    return 1;
-                }
-                return 0;
-            }
-            public boolean equals(Comparator<Result> r){
-                return true;
-            }
-        };
+//        final Comparator fisherComp = new Comparator<Result>(){
+//            public int compare(Result r1, Result r2){
+//                if(r1.fisher > r2.fisher){
+//                    return -1;
+//                }else if(r1.fisher < r2.fisher){
+//                    return 1;
+//                }else if(r1.phred > r2.phred){
+//                    return -1;
+//                }else if(r1.phred < r2.phred){
+//                    return 1;
+//               }
+//                return 0;
+//            }
+//            public boolean equals(Comparator<Result> r){
+//                return true;
+//            }
+//        };
+
         Result best = candidates.get(0);
-        Comparator comp = (calc_fisher)? fisherComp: phredComp;
+        Comparator comp = phredComp;
         for(Result r: candidates){
             if(comp.compare(best, r) > 0){
                 best = r;
