@@ -171,7 +171,7 @@ public class DigenomeDetect implements AutoCloseable{
     }
     public ArrayList<Result> analyze(ArrayList<String> block){
         String chr = null;
-        if(block.size() < READ_LENGTH*4){
+        if(block.size() < 100){
             // System.out.println("ok");
             System.err.println("block size was too small: " + block.size() + " at " + get_center_genomic(block.get(0)));
             return null;
