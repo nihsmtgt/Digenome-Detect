@@ -48,8 +48,6 @@ public class Main {
                     inplaceDepth2 = true;
                 }else if(argv[i].equals("--threads") || argv[i].equals("-t")){
                     threads = Integer.parseInt(argv[i+1]);
-                }else if(argv[i].equals("--relaxed_filter") && argv[i+1].equals("true")){
-                    DigenomeDetect.relaxed_filter = true;
                 }else if(argv[i].equals("--regions") || argv[i].equals("--region")){
                     if(argv[i+1].startsWith("GRCm")){
                         regions = mouse_chromosomes;
