@@ -122,6 +122,8 @@ public class DigenomeDetect implements AutoCloseable{
                 bed.printf(best.chr + "\t" + best.start + "\t" + best.end + "\t");
                 bed.printf("CLSCORE=%.2f;", best.phred);
                 bed.printf("DP=%.1f;", best.median);
+                bed.printf("fwdDP=" + best.fwd_depth + ";");
+                bed.printf("revDP=" + best.rev_depth + ";");
                 if(calc_cs){
                     bed.printf("CS=%.2f;", cscore);
                 }
@@ -245,6 +247,8 @@ public class DigenomeDetect implements AutoCloseable{
                     result.width = width;
                     result.cscore = cscore;
                     result.ratio = calcRatio(center, block_rev_tails, block_fwd_heads, block_fwd_tails, block_rev_heads, width);
+                    result.fwd_depth = block_fwd_depth[center+10];
+                    result.rev_depth = block_rev_depth[center-10];                    
                     int rt_start = center-1-width+frame;
                     int rt_end =   center-1-width+frame+width + 1;
                     int fh_start = center - width + frame;
@@ -373,6 +377,8 @@ public class DigenomeDetect implements AutoCloseable{
         double fisher;
         double ratio;
         double median;
+        int fwd_depth;
+        int rev_depth;
         public Result(){
             table = new int[2][]; // for fisher exact test
             table[0] = new int[2];

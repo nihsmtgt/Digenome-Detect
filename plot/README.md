@@ -28,7 +28,7 @@ java ScoreCheck [options] <case.bed> <control.bed>
 - --debug: Enable debug mode to dump scores to log.
 
 ## Input Files
-Two bed files resulting from Digenome-detect_Main for the sample data and the negative control data. 
+Two bed files for the sample and the negative control resulting from Digenome-detect_Main. 
 
 ## Output
 The program outputs:
