@@ -113,7 +113,7 @@ public class DigenomeDetect implements AutoCloseable{
         }
         if(results.size() > 0){
             Result best = chooseBest(results);
-            if( best.table[1][1] > 2 && best.table[0][0] > 2){
+            if( best.table[1][1] > 2 || best.table[0][0] > 2){
                 double cscore = (best.cscore == null)? 0.0: best.cscore.getScore();
                 // bed.printf(best.chr + "\t" + best.start + "\t" + best.end
                 //    + "\tCLSCORE="+ format("%.2f", best.phred)+";DP="+ best.median + ";CS=%.2f;"
