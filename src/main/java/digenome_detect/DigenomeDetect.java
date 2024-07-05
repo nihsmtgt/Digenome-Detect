@@ -351,7 +351,7 @@ public class DigenomeDetect implements AutoCloseable{
 //        };
 
         Result best = candidates.get(0);
-        Comparator comp = phredComp;
+        Comparator<Result> comp = phredComp;
         for(Result r: candidates){
             if(comp.compare(best, r) > 0){
                 best = r;
