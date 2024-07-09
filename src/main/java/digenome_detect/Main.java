@@ -27,7 +27,8 @@ public class Main {
     static boolean debug = false;
     static int detectWidth = 3;
     static boolean is_siteseq = false;
-    static boolean inplaceDepth2 = true;
+    static boolean inplaceDepth2 = false;
+    static boolean inplaceUpperProb = true;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
@@ -43,6 +44,10 @@ public class Main {
                     out = argv[i+1];
                 }else if(argv[i].equals("--median-depth")){
                     inplaceDepth2 = false;
+                    inplaceUpperProb = false;
+                }else if(argv[i].equals("--oldscore")){
+                    inplaceDepth2 = true;
+                    inplaceUpperProb = false;
                 }else if(argv[i].equals("--threads") || argv[i].equals("-t")){
                     threads = Integer.parseInt(argv[i+1]);
                 }else if(argv[i].equals("--regions") || argv[i].equals("--region")){
@@ -137,6 +142,7 @@ public class Main {
             detect.setControlBam(controlPath);
 
             detect.setInplaceDepth2(inplaceDepth2);
+            detect.setInplaceUpperProb(inplaceUpperProb);
             detect.setSiteSeq(is_siteseq);
             detect.setDebug(debug);
         }

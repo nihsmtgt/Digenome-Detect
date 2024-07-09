@@ -2,7 +2,9 @@ package digenome_detect;
 
 import java.io.*;
 import java.lang.Math;
+import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.MathContext;
 import java.util.*;
 import java.lang.AutoCloseable;
 
@@ -12,7 +14,8 @@ public class DigenomeDetect implements AutoCloseable{
     public boolean is_siteseq = false;
     public static boolean calc_cs = false;
     public static boolean calc_fisher = true;
-    public boolean inplace_depth2 = true;
+    public boolean inplace_depth2 = false;
+    public boolean inplace_depth_upperProb = true; 
 
     // numbers greater than 10^MAX_DIGITS_10 or e^MAX_DIGITS_E are considered unsafe ('too big') for floating point operations
     private static final int MAX_DIGITS_2 = 977; // ~ MAX_DIGITS_10 * LN(10)/LN(2)
@@ -30,6 +33,9 @@ public class DigenomeDetect implements AutoCloseable{
     int[] block_body = new int[READ_LENGTH*4];
     int[] block_fwd_depth = new int[READ_LENGTH*4];
     int[] block_rev_depth = new int[READ_LENGTH*4];
+    static BigDecimal[] factrialArray = new BigDecimal[20000];
+    MathContext mathContext = new MathContext(100);
+    
     boolean debug = false;
     PrintWriter bed = null;
     ControlChecker checker = null;
@@ -48,6 +54,9 @@ public class DigenomeDetect implements AutoCloseable{
     }
     public void setInplaceDepth2(boolean b){
         this.inplace_depth2 = b;
+    }
+    public void setInplaceUpperProb(boolean b){
+        this.inplace_depth_upperProb = b;
     }
     public void setSiteSeq(boolean b){
         this.is_siteseq = b;
@@ -221,7 +230,12 @@ public class DigenomeDetect implements AutoCloseable{
                     int rt_end =   center-1-width+frame+width + 1;
                     int fh_start = center - width + frame;
                     int fh_end =   center - width + frame + width + 1;
-                    if(inplace_depth2){
+                    if(inplace_depth_upperProb){
+                        result.phred = calcUpperProbScore(block_fwd_depth[center+10], block_rev_depth[center-10],
+                        sum(block_fwd_heads, fh_start, fh_end),
+                        sum(block_rev_tails, rt_start, rt_end),
+                        width);
+                    }else if(inplace_depth2){
                         result.inplace2 = calcProb_with_inplaceDepth2(
                             block_fwd_depth[center+10], block_rev_depth[center-10],
                             sum(block_fwd_heads, fh_start, fh_end),
@@ -235,6 +249,7 @@ public class DigenomeDetect implements AutoCloseable{
                             sum(block_rev_tails, rt_start, rt_end),
                             width);
                     }
+
 
                     result.table[0][0] = sum(block_fwd_heads, fh_start, fh_end);
                     result.table[0][1] = sum(block_rev_heads, fh_start, fh_end);
@@ -392,6 +407,95 @@ public class DigenomeDetect implements AutoCloseable{
         }
         return -1*(fwd_p + rev_p);
     }
+
+    private double calcUpperProbScore(int fdepth, int rdepth, int fcount, int rcount, int width){
+        double flambda = ((double)fdepth)/READ_LENGTH * (width + 1);
+        double rlambda = ((double)rdepth)/READ_LENGTH * (width + 1);
+        
+        double fLogProb = logProb(fcount, flambda);
+        double rLogProb = logProb(rcount, rlambda);
+
+        double upperProbScore = -1 * (fLogProb + rLogProb);
+        return upperProbScore; 
+    }
+
+    private double logProb(int count, double dlambda){
+        double logProb = 0; 
+        int j = 0;
+        do{
+            mathContext = new MathContext(100 + 100 * j);
+            BigDecimal prob = calcUpperProb(count, dlambda);
+            if(prob.compareTo(BigDecimal.ZERO) > 0){
+                int s = prob.toString().split("E").length > 1 ? Integer.parseInt(prob.toString().split("E-")[1]) : 0;
+                logProb = Math.log10(prob.movePointRight(s).doubleValue()) - s ;
+              }
+              else{
+                logProb = -1 * mathContext.getPrecision();
+              }
+              j++;
+        }while(logProb < -1 * (mathContext.getPrecision()-5) && j < 20);
+        
+        return logProb;
+    }
+
+    private BigDecimal calcUpperProb(int count, double dlambda) {
+        BigDecimal lambda = BigDecimal.valueOf(dlambda); 
+        updateFactrialArray(count);
+        int n = count < mathContext.getPrecision() ? mathContext.getPrecision() : count;
+        BigDecimal[] lambdaPowArray = makeLambdaPowArray(n, lambda);
+        BigDecimal eLambda = calcELambda(lambda, lambdaPowArray);
+        BigDecimal upperProb = BigDecimal.ONE;
+
+        for (int i = 0; i < count && upperProb.compareTo(BigDecimal.ZERO) > 0; i++) {
+            BigDecimal term = calcPoisProb(i, lambda, eLambda, lambdaPowArray);
+            upperProb = upperProb.subtract(term, mathContext);
+            }
+
+        return upperProb;
+    }
+
+    public BigDecimal[] makeLambdaPowArray(int n, BigDecimal lambda) {
+        BigDecimal result[] = new BigDecimal[n+1];
+        result[0] = BigDecimal.ONE;
+        for (int i = 1; i <= n; i++) {
+            result[i] = result[i-1].multiply(lambda, mathContext);
+        }
+        return result;
+    }
+
+    private void updateFactrialArray(int n) {
+        if(factrialArray[0] != BigDecimal.ONE){
+            factrialArray[0] = BigDecimal.ONE;
+            for (int i = 1 ; i <= 2000; i++) {
+                factrialArray[i] = factrialArray[i-1].multiply(BigDecimal.valueOf(i));
+            }    
+        }
+        if(factrialArray[n] == null){
+            for (int i = factrialArray.length-1 ; i <= n; i++) {
+                factrialArray[i] = factrialArray[i-1].multiply(BigDecimal.valueOf(i));
+            }    
+        }
+    }
+
+    private BigDecimal calcELambda(BigDecimal lambda, BigDecimal[] lambdaPowArray) {
+        BigDecimal sum = BigDecimal.ZERO;
+        for (int i = 0; i < mathContext.getPrecision(); i++) { // use i terms for the Taylor series expansion
+          BigDecimal lambdaPowI = lambdaPowArray[i];
+          BigDecimal factorial = factrialArray[i];
+
+          BigDecimal term = lambdaPowI.divide(factorial, mathContext);
+          sum = sum.add(term, mathContext);
+        }
+        return sum;
+    }
+    
+    private BigDecimal calcPoisProb(int i, BigDecimal lambda, BigDecimal eLambda, BigDecimal[] lambdaPowArray) {
+        BigDecimal factorial = factrialArray[i];
+        BigDecimal lambdaPowI = lambdaPowArray[i];
+        return lambdaPowI.divide(factorial, mathContext).divide(eLambda, mathContext);
+    }
+
+
 
     public double calcProb(int depth, int fcount, int rcount, int width){
         double fwd_p = 0;
