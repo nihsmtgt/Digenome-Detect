@@ -5,9 +5,6 @@ import java.lang.Math;
 import java.math.BigInteger;
 import java.util.*;
 import java.lang.AutoCloseable;
-// import java.util.zip.GZIPInputStream;
-//import org.apache.commons.math3.distribution.ExponentialDistribution;
-//import org.broadinstitute.hellbender.utils.*;
 
 public class DigenomeDetect implements AutoCloseable{
     public static final double LOG_2 = Math.log(2.0);
@@ -19,9 +16,7 @@ public class DigenomeDetect implements AutoCloseable{
     public boolean inplace_depth2 = true;
 
     // numbers greater than 10^MAX_DIGITS_10 or e^MAX_DIGITS_E are considered unsafe ('too big') for floating point operations
-    //private static final int MAX_DIGITS_10 = 294;
     private static final int MAX_DIGITS_2 = 977; // ~ MAX_DIGITS_10 * LN(10)/LN(2)
-    //private static final int MAX_DIGITS_E = 677; // ~ MAX_DIGITS_10 * LN(10)
 
     static int DETECT_WIDTH = 1;
     public final static int READ_LENGTH = 150;
@@ -115,10 +110,7 @@ public class DigenomeDetect implements AutoCloseable{
             Result best = chooseBest(results);
             if( best.table[1][1] > 2 || best.table[0][0] > 2){
                 double cscore = (best.cscore == null)? 0.0: best.cscore.getScore();
-                // bed.printf(best.chr + "\t" + best.start + "\t" + best.end
-                //    + "\tCLSCORE="+ format("%.2f", best.phred)+";DP="+ best.median + ";CS=%.2f;"
-                //    + "Ratio="+ format("%.3f", best.ratio)+";FISHER="+format("%.3f", best.fisher)+";RevHead="+ best.table[0][1] +";RevTail="+ best.table[1][1]
-                //    + ";FwdHead=" + best.table[0][0] + ";FwdTail="+ best.table[1][0]+";MQ0=%d;CLIPS=%d", cscore, best.mq0, best.clips);
+
                 bed.printf(best.chr + "\t" + best.start + "\t" + best.end + "\t");
                 bed.printf("CLSCORE=%.2f;", best.phred);
                 bed.printf("DP=%.1f;", best.median);
@@ -173,15 +165,14 @@ public class DigenomeDetect implements AutoCloseable{
     public ArrayList<Result> analyze(ArrayList<String> block){
         String chr = null;
         if(block.size() < 100){
-            // System.out.println("ok");
             System.err.println("block size was too small: " + block.size() + " at " + get_center_genomic(block.get(0)));
             return null;
         }
         int center_genomic = get_center_genomic(block.get(0));
         int center = -1;
         int block_size = 0;
+
         for(int i = 1; i<block.size(); i++){
-            // System.out.println(block.get(i));
             String[] line = block.get(i).split("\t");
             chr = line[0];
             block_pos[i-1] = Integer.parseInt(line[1]);
@@ -197,7 +188,6 @@ public class DigenomeDetect implements AutoCloseable{
             block_softclips[i-1] = Integer.parseInt(line[8]);
             block_fwd_depth[i-1] = Integer.parseInt(line[9]);
             block_rev_depth[i-1] = Integer.parseInt(line[10]);
-            // block_body[i-1] = Integer.parseInt(line[8]);
             block_size++;
         }
         double[] median_mean = calcMedianAndMean(block_depth, block_size, center);
@@ -207,18 +197,7 @@ public class DigenomeDetect implements AutoCloseable{
            skip = false;
            inplace_depth = true;
         }
- //       else if(median_mean[0] > 500 || median_mean[1] > 500){ // on repeat
- //           skip = true;
- //       }
-  //    for(int i = center-3; i<center+3; i++){
-  //        if(block_rev_tails[i-1] < block_rev_heads[i-1] || block_rev_tails[i-1] < block_fwd_tails[i]
-  //            || block_fwd_heads[i] < block_rev_heads[i-1] || block_fwd_heads[i] < block_fwd_tails[i]){
-  //                skip = true;
-  //    //  }else if(block_rev_tails[i-1] > 1 && block_fwd_heads[i] > 1 && block_pos[i]-1 == block_pos[i-1]){
-  //    //      skip = false;
-  //            break;
-  //        }
-  //    }
+
         if(debug && !skip){
             System.err.println("-----------------------------------------------------------------------------------");
             System.err.println(block.get(0));
@@ -273,10 +252,7 @@ public class DigenomeDetect implements AutoCloseable{
                             sum(block_rev_tails, rt_start, rt_end),
                             width);
                     }
-                    /*
-                    if(result.phred > 10000.0 || result.phred < 0){
-                        result.phred = 10000.0;
-                    }*/
+
                     result.table[0][0] = sum(block_fwd_heads, fh_start, fh_end);
                     result.table[0][1] = sum(block_rev_heads, fh_start, fh_end);
                     result.table[1][0] = sum(block_fwd_tails, rt_start, rt_end);
@@ -288,11 +264,7 @@ public class DigenomeDetect implements AutoCloseable{
                     result.end = block_pos[fh_start+width];
                     result.mq0 =  sum(block_mq0, fh_start-2, fh_end+2);
                     result.clips = sum(block_softclips, fh_start, fh_end);
-                    // System.err.println("clips = " + result.clips + " from " + fh_start + " to " + (fh_end));
-                    /*
-                    if(result.fisher > 1200){
-                        result.fisher = 1200;
-                    }*/
+
                     if(debug){
                         System.err.println("fh_start: " + fh_start + ", fh_end: " + fh_end);
                         System.err.println("rt_start: " + rt_start + ", rt_end: " + rt_end);
@@ -331,24 +303,6 @@ public class DigenomeDetect implements AutoCloseable{
                 return true;
             }
         };
-        // by fisher
-//        final Comparator fisherComp = new Comparator<Result>(){
-//            public int compare(Result r1, Result r2){
-//                if(r1.fisher > r2.fisher){
-//                    return -1;
-//                }else if(r1.fisher < r2.fisher){
-//                    return 1;
-//                }else if(r1.phred > r2.phred){
-//                    return -1;
-//                }else if(r1.phred < r2.phred){
-//                    return 1;
-//               }
-//                return 0;
-//            }
-//            public boolean equals(Comparator<Result> r){
-//                return true;
-//            }
-//        };
 
         Result best = candidates.get(0);
         Comparator<Result> comp = phredComp;
@@ -464,16 +418,12 @@ public class DigenomeDetect implements AutoCloseable{
         try {
             double denomitor = logBigInteger(factorialHavingLargeResult(fcount));
             double numerator = fcount * Math.log10(flambda) - (flambda * Math.log10(Math.E));
-            // double numerator = Math.log10(Math.pow(flambda, fcount) * Math.exp(-flambda));
             fwd_p = numerator - denomitor/Math.log(10);
 
             denomitor = logBigInteger(factorialHavingLargeResult(rcount));
             numerator = rcount * Math.log10(rlambda) - (rlambda * Math.log10(Math.E));
-            // numerator = Math.log10(Math.pow(rlambda, rcount) * Math.exp(-rlambda));
             rev_p = numerator - denomitor/Math.log(10);
         }catch(Exception e){
-            // System.err.println("forward depth=" + fdepth);
-            // System.err.println("reverse depth=" + rdepth);
             System.err.println(e.getMessage());
             e.printStackTrace();
             return 0;
