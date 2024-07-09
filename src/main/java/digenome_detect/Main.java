@@ -27,7 +27,6 @@ public class Main {
     static boolean debug = false;
     static int detectWidth = 3;
     static boolean is_siteseq = false;
-    static boolean inplaceDepth = false;
     static boolean inplaceDepth2 = true;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
@@ -42,10 +41,7 @@ public class Main {
                     controlPath = argv[i+1];
                 }else if(argv[i].equals("--out")){
                     out = argv[i+1];
-                }else if(argv[i].equals("--inplace-depth")){
-                    inplaceDepth = true;
                 }else if(argv[i].equals("--median-depth")){
-                    inplaceDepth = false;
                     inplaceDepth2 = false;
                 }else if(argv[i].equals("--threads") || argv[i].equals("-t")){
                     threads = Integer.parseInt(argv[i+1]);
@@ -140,7 +136,6 @@ public class Main {
             detect = new DigenomeDetect(detectWidth, new FileOutputStream(out + "." + chr + ".bed"));
             detect.setControlBam(controlPath);
 
-            detect.setInplaceDepth(inplaceDepth);
             detect.setInplaceDepth2(inplaceDepth2);
             detect.setSiteSeq(is_siteseq);
             detect.setDebug(debug);

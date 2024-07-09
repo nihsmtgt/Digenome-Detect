@@ -12,7 +12,6 @@ public class DigenomeDetect implements AutoCloseable{
     public boolean is_siteseq = false;
     public static boolean calc_cs = false;
     public static boolean calc_fisher = true;
-    public boolean inplace_depth = false;
     public boolean inplace_depth2 = true;
 
     // numbers greater than 10^MAX_DIGITS_10 or e^MAX_DIGITS_E are considered unsafe ('too big') for floating point operations
@@ -46,9 +45,6 @@ public class DigenomeDetect implements AutoCloseable{
         if(bamPath != null){
             checker = new ControlChecker(bamPath);
         }
-    }
-    public void setInplaceDepth(boolean b){
-        this.inplace_depth = b;
     }
     public void setInplaceDepth2(boolean b){
         this.inplace_depth2 = b;
@@ -141,12 +137,6 @@ public class DigenomeDetect implements AutoCloseable{
                             control[0],
                             control[3],
                             best.end-best.start+1);
-                    }else if(inplace_depth){
-                        score = calcProb_with_inplaceDepth(
-                            cont_depth_start, cont_depth_end,
-                            control[0],
-                            control[3],
-                            best.end-best.start+1);
                     }else {
                         score = calcProb(
                             (cont_depth_start+cont_depth_end)/2,
@@ -195,7 +185,7 @@ public class DigenomeDetect implements AutoCloseable{
         boolean skip = false;
         if(is_siteseq){
            skip = false;
-           inplace_depth = true;
+           inplace_depth2 = true;
         }
 
         if(debug && !skip){
@@ -231,14 +221,7 @@ public class DigenomeDetect implements AutoCloseable{
                     int rt_end =   center-1-width+frame+width + 1;
                     int fh_start = center - width + frame;
                     int fh_end =   center - width + frame + width + 1;
-                    if(inplace_depth){
-                        result.inplace = calcProb_with_inplaceDepth(
-                            block_depth[center+10], block_depth[center-10],
-                            sum(block_fwd_heads, fh_start, fh_end),
-                            sum(block_rev_tails, rt_start, rt_end),
-                            width);
-                        result.phred = result.inplace;
-                    }else if(inplace_depth2){
+                    if(inplace_depth2){
                         result.inplace2 = calcProb_with_inplaceDepth2(
                             block_fwd_depth[center+10], block_rev_depth[center-10],
                             sum(block_fwd_heads, fh_start, fh_end),
@@ -410,26 +393,6 @@ public class DigenomeDetect implements AutoCloseable{
         return -1*(fwd_p + rev_p);
     }
 
-    public double calcProb_with_inplaceDepth(int fdepth, int rdepth, int fcount, int rcount, int width){
-        double fwd_p = 0;
-        double rev_p = 0;
-        double flambda = ((double)fdepth)/READ_LENGTH * (width + 1);
-        double rlambda = ((double)rdepth)/READ_LENGTH * (width + 1);
-        try {
-            double denomitor = logBigInteger(factorialHavingLargeResult(fcount));
-            double numerator = fcount * Math.log10(flambda) - (flambda * Math.log10(Math.E));
-            fwd_p = numerator - denomitor/Math.log(10);
-
-            denomitor = logBigInteger(factorialHavingLargeResult(rcount));
-            numerator = rcount * Math.log10(rlambda) - (rlambda * Math.log10(Math.E));
-            rev_p = numerator - denomitor/Math.log(10);
-        }catch(Exception e){
-            System.err.println(e.getMessage());
-            e.printStackTrace();
-            return 0;
-        }
-        return -1*(fwd_p + rev_p);
-    }
     public double calcProb(int depth, int fcount, int rcount, int width){
         double fwd_p = 0;
         double rev_p = 0;
