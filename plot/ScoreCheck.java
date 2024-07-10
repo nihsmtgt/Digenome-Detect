@@ -265,7 +265,7 @@ class ScoreCheck {
         Collections.sort(this.cases);
         Collections.sort(this.controls);
         try (
-            FileWriter fw = new FileWriter("cases.bed");
+            FileWriter fw = new FileWriter(this.outputPath + "cases.bed");
             BufferedWriter bw = new BufferedWriter(fw);
             PrintWriter pw = new PrintWriter(bw))
         {
@@ -276,7 +276,7 @@ class ScoreCheck {
             }
         }
         try (
-            FileWriter fw = new FileWriter("controls.bed");
+            FileWriter fw = new FileWriter(this.outputPath + "controls.bed");
             BufferedWriter bw = new BufferedWriter(fw);
             PrintWriter pw = new PrintWriter(bw))
         {
@@ -312,7 +312,7 @@ class ScoreCheck {
         StringWriter sw = new StringWriter();
         if (this.outputPath != null) {
             try {
-                bw = new BufferedWriter(new FileWriter(this.outputPath));
+                bw = new BufferedWriter(new FileWriter(this.outputPath + "plotdata.txt"));
                 bw2 = new BufferedWriter(sw = new StringWriter());
             } catch (IOException e) {
                 e.printStackTrace();
@@ -393,7 +393,7 @@ class ScoreCheck {
             }
         }
         try (
-            FileWriter fw = new FileWriter("results.bed");
+            FileWriter fw = new FileWriter(this.outputPath + "results.bed");
             BufferedWriter bw3 = new BufferedWriter(fw);
             PrintWriter pw = new PrintWriter(bw3))
         {
@@ -406,7 +406,7 @@ class ScoreCheck {
         }
 
         if (this.outputPath != null) {
-            String htmlOut = this.outputPath.replaceAll(".txt", ".html");
+            String htmlOut = this.outputPath + "plot.html";
             try {
                 BufferedWriter htmlWriter = new BufferedWriter(new FileWriter(htmlOut));
                 if(separatedGraph){
