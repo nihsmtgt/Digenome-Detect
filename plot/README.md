@@ -23,8 +23,9 @@ java ScoreCheck [options] <case.bed> <control.bed>
 ```
 
 ## Options
-- --out [outputPath]: Specify the output file path.
-- --threshold [value]: Set the score threshold to filter out low-quality cleavage-likelihood scores (default: 7.0).
+- --out [outputPath]: The directory to output files.
+- --threshold [value]: Initial score threshold to filter out low-quality cleavage-likelihood scores (default: 7.0).
+- --ratio_threshold [value]: Sample/control ratio are calculated for narrow score ranges and minimum score of the score range with sample/control ratio below this value becomes final CLSCORE threshold (default: 1).
 - --debug: Enable debug mode to dump scores to log.
 
 ## Input Files
@@ -33,6 +34,8 @@ Two bed files for the sample and the negative control resulting from Digenome-de
 ## Output
 The program outputs:
 
-- Filtered data in BED format.
-- HTML visualization of the plot of score distribution.
+- Filtered data in BED format (case.bed and control.bed).
+- Candidate off-target cleavage sites in BED format (result.bed).
+- List of sample/control ratio of the score ranges (plotdata.bed).
+- HTML visualization of the plot of score distribution (plot.html).
   
