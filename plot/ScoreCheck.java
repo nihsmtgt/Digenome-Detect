@@ -356,7 +356,7 @@ class ScoreCheck {
             if(ratioThreshold <= ratio){
                 isOverThreshold = true;
             }else if(!isOverThreshold){
-                finalScoreThreshold = max;
+                finalScoreThreshold = min;
             }
     
             // output the score intervals of cases and count of cases and controls and its ratio and percentage
@@ -429,8 +429,8 @@ class ScoreCheck {
     
         for (String line : lines) {
             String[] parts = line.split("\\t");
-            double maxScore = Double.parseDouble(parts[1]);    
-            xValues.append("'").append(maxScore).append("',");
+            double minScore = Double.parseDouble(parts[0]);    
+            xValues.append("'").append(minScore).append("',");
             ratioYValues.append(parts[4]).append(",");
             percentageYValues.append(parts[5]).append(",");
         }
@@ -583,7 +583,7 @@ class ScoreCheck {
             if(args.length < 2){
                 System.err.println("Usage: java ScoreCheck [--mq0 <mq0>] [--clips <clips>] [--debug] <case.bed> <control.bed>");
                 System.err.println("     --threshold: filter for low quality scores (default: 7.0)");
-                System.err.println("     --ratio_threshold: score ranges with sample/control ratios above this value are excluded from result (default: 1)");
+                System.err.println("     --ratio_threshold: minimum score of the score range with sample/control ratio below this value becomes final CLSCORE threshold (default: 1)");
                 System.exit(1);
             }
             for(int i = 0; i<args.length-1; i++){
