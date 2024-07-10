@@ -39,6 +39,10 @@ class ScoreCheck {
     }
     ArrayList<Score> cases = new ArrayList<>();
     ArrayList<Score> controls = new ArrayList<>();
+    ArrayList<Score> result = new ArrayList<>();
+    double finalScoreThreshold = 0;
+    static double ratioThreshold = 1.0; 
+
     public ScoreCheck(String casePath, String controlPath, String outputPath) throws IOException{
         this.cases = loadBed(casePath, false);
         System.err.println("Cases: " + this.cases.size() + " points");
@@ -324,6 +328,7 @@ class ScoreCheck {
         Collections.sort(uniqueScores, Collections.reverseOrder());
 
         // iterate for each 25 unique scores of cases
+        boolean isOverThreshold = false;
         for (int i = 0; i < uniqueScores.size(); i += 1) {
             List<Score> subcases = new ArrayList<>();
             List<Score> subcontrols = new ArrayList<>();
@@ -347,6 +352,12 @@ class ScoreCheck {
             // calculate the ratio of subcases and subcontrols
             double ratio = (double) subcontrols.size() / (double) subcases.size();
             double percentage = (double) subcases.size() / (double) (subcases.size() + subcontrols.size());
+            
+            if(ratioThreshold <= ratio){
+                isOverThreshold = true;
+            }else if(!isOverThreshold){
+                finalScoreThreshold = max;
+            }
     
             // output the score intervals of cases and count of cases and controls and its ratio and percentage
             if (bw == null) {
@@ -370,6 +381,30 @@ class ScoreCheck {
                 System.exit(1);
             }
         }
+
+        // output final result
+
+        for(Score s : this.cases){
+            if (s.score <= finalScoreThreshold) {
+                continue;
+            }
+            else if(!s.isControl){
+                this.result.add(s);
+            }
+        }
+        try (
+            FileWriter fw = new FileWriter("results.bed");
+            BufferedWriter bw3 = new BufferedWriter(fw);
+            PrintWriter pw = new PrintWriter(bw3))
+        {
+            // print header
+            pw.println("#chrom\tstart\tend\tscore\tclips\tmq0\tfwdHead\trevTail");
+            for(Score s : this.result){
+                pw.println(s.chrom + "\t" + s.start + "\t" + s.end + "\t" + s.score + "\t" + s.clips + "\t" + s.mq0 + "\t" + s.fwdHead + "\t" + s.revTail);
+            }
+            System.out.println("threshold: " + finalScoreThreshold);
+        }
+
         if (this.outputPath != null) {
             String htmlOut = this.outputPath.replaceAll(".txt", ".html");
             try {
@@ -548,19 +583,21 @@ class ScoreCheck {
             if(args.length < 2){
                 System.err.println("Usage: java ScoreCheck [--mq0 <mq0>] [--clips <clips>] [--debug] <case.bed> <control.bed>");
                 System.err.println("     --threshold: filter for low quality scores (default: 7.0)");
+                System.err.println("     --ratio_threshold: score ranges with sample/control ratios above this value are excluded from result (default: 1)");
                 System.exit(1);
             }
             for(int i = 0; i<args.length-1; i++){
                 if(args[i].equals("--out")){
                     outputPath = args[i+1];
-                    i++;
                 }
-                if(args[i].equals("--threshold")){
+                else if(args[i].equals("--threshold")){
                     scoreThreshold = Double.parseDouble(args[i+1]);
-                    i++;
                 }
-                if(args[i].equals("--debug")){
+                else if(args[i].equals("--debug")){
                     debug = true;
+                }
+                else if(args[i].equals("--ratio_threshold")){
+                    ratioThreshold = Double.parseDouble(args[i+1]);
                 }
             }
             ScoreCheck sc = new ScoreCheck(args[args.length-2], args[args.length-1], outputPath);
