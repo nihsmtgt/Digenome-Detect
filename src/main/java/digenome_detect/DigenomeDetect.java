@@ -387,11 +387,11 @@ public class DigenomeDetect implements AutoCloseable{
         double rlambda = ((double)rdepth)/READ_LENGTH * (width + 1);
         try {
             double denomitor = logBigInteger(factorialHavingLargeResult(fcount));
-            double numerator = fcount * Math.log10(flambda) - (flambda * Math.log10(Math.E));
+            double numerator = flambda == 0 ? 0 : fcount * Math.log10(flambda) - (flambda * Math.log10(Math.E));
             fwd_p = numerator - denomitor/Math.log(10);
 
             denomitor = logBigInteger(factorialHavingLargeResult(rcount));
-            numerator = rcount * Math.log10(rlambda) - (rlambda * Math.log10(Math.E));
+            numerator = rlambda == 0 ? 0 : rcount * Math.log10(rlambda) - (rlambda * Math.log10(Math.E));
             rev_p = numerator - denomitor/Math.log(10);
         }catch(Exception e){
             System.err.println(e.getMessage());
