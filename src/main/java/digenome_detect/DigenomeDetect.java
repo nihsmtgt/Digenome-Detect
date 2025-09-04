@@ -14,7 +14,6 @@ public class DigenomeDetect implements AutoCloseable{
     public static boolean calc_fisher = true;
     public boolean inplace_depth = false;
     public boolean inplace_depth2 = false;
-    public static boolean relaxed_filter = false;
 
     // numbers greater than 10^MAX_DIGITS_10 or e^MAX_DIGITS_E are considered unsafe ('too big') for floating point operations
     private static final int MAX_DIGITS_2 = 977; // ~ MAX_DIGITS_10 * LN(10)/LN(2)
@@ -265,10 +264,7 @@ public class DigenomeDetect implements AutoCloseable{
                             sum(block_rev_tails, rt_start, rt_end),
                             width);
                     }
-                    /*
-                    if(result.phred > 10000.0 || result.phred < 0){
-                        result.phred = 10000.0;
-                    }*/
+
                     result.table[0][0] = sum(block_fwd_heads, fh_start, fh_end);
                     result.table[0][1] = sum(block_rev_heads, fh_start, fh_end);
                     result.table[1][0] = sum(block_fwd_tails, rt_start, rt_end);
@@ -280,11 +276,7 @@ public class DigenomeDetect implements AutoCloseable{
                     result.end = block_pos[fh_start+width];
                     result.mq0 =  sum(block_mq0, fh_start-2, fh_end+2);
                     result.clips = sum(block_softclips, fh_start, fh_end);
-                    // System.err.println("clips = " + result.clips + " from " + fh_start + " to " + (fh_end));
-                    /*
-                    if(result.fisher > 1200){
-                        result.fisher = 1200;
-                    }*/
+
                     if(debug){
                         System.err.println("fh_start: " + fh_start + ", fh_end: " + fh_end);
                         System.err.println("rt_start: " + rt_start + ", rt_end: " + rt_end);
@@ -320,23 +312,9 @@ public class DigenomeDetect implements AutoCloseable{
                 return 0;
             }
         };
-        // by fisher
-        final Comparator fisherComp = new Comparator<Result>(){
-            public int compare(Result r1, Result r2){
-                if(r1.fisher > r2.fisher){
-                    return -1;
-                }else if(r1.fisher < r2.fisher){
-                    return 1;
-                }else if(r1.phred > r2.phred){
-                    return -1;
-                }else if(r1.phred < r2.phred){
-                    return 1;
-                }
-                return 0;
-            }
-        };
+
         Result best = candidates.get(0);
-        Comparator comp = (calc_fisher)? fisherComp: phredComp;
+        Comparator comp = phredComp;
         for(Result r: candidates){
             if(comp.compare(best, r) > 0){
                 best = r;
