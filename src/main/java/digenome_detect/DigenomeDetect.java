@@ -166,16 +166,16 @@ public class DigenomeDetect implements AutoCloseable{
     }
     public ArrayList<Result> analyze(ArrayList<String> block){
         String chr = null;
+        /*
         if(block.size() < READ_LENGTH*4){
-            // System.out.println("ok");
             System.err.println("block size was too small: " + block.size() + " at " + get_center_genomic(block.get(0)));
             return null;
         }
+        */
         int center_genomic = get_center_genomic(block.get(0));
         int center = -1;
         int block_size = 0;
         for(int i = 1; i<block.size(); i++){
-            // System.out.println(block.get(i));
             String[] line = block.get(i).split("\t");
             chr = line[0];
             block_pos[i-1] = Integer.parseInt(line[1]);
