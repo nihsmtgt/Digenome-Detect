@@ -115,7 +115,6 @@ public class DigenomeDetect implements AutoCloseable{
                 if(calc_cs){
                     bed.printf("CS=%.2f;", cscore);
                 }
-                bed.printf("CS=%.2f;", cscore);
                 bed.printf("Ratio=%.3f;", best.ratio);
                 if(calc_fisher){
                     bed.printf("FISHER=%.4f;", best.fisher);
