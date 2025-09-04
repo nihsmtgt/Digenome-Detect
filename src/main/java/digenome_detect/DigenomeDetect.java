@@ -72,7 +72,6 @@ public class DigenomeDetect implements AutoCloseable{
         bed.close();
     }
     int get_center_genomic(String src){
-        // println!("---- len={}, at {}"
         String[] line = src.split(" ");
         if(!line[2].equals("at")){
             System.err.println("bad line:  " +  src);
@@ -110,10 +109,6 @@ public class DigenomeDetect implements AutoCloseable{
             Result best = chooseBest(results);
             if( best.table[1][1] > 2 && best.table[0][0] > 2){
                 double cscore = (best.cscore == null)? 0.0: best.cscore.getScore();
-                // bed.printf(best.chr + "\t" + best.start + "\t" + best.end
-                //    + "\tCLSCORE="+ format("%.2f", best.phred)+";DP="+ best.median + ";CS=%.2f;"
-                //    + "Ratio="+ format("%.3f", best.ratio)+";FISHER="+format("%.3f", best.fisher)+";RevHead="+ best.table[0][1] +";RevTail="+ best.table[1][1]
-                //    + ";FwdHead=" + best.table[0][0] + ";FwdTail="+ best.table[1][0]+";MQ0=%d;CLIPS=%d", cscore, best.mq0, best.clips);
                 bed.printf(best.chr + "\t" + best.start + "\t" + best.end + "\t");
                 bed.printf("CLSCORE=%.2f;", best.phred);
                 bed.printf("DP=%.1f;", best.median);
@@ -191,7 +186,6 @@ public class DigenomeDetect implements AutoCloseable{
             block_softclips[i-1] = Integer.parseInt(line[8]);
             block_fwd_depth[i-1] = Integer.parseInt(line[9]);
             block_rev_depth[i-1] = Integer.parseInt(line[10]);
-            // block_body[i-1] = Integer.parseInt(line[8]);
             block_size++;
         }
         double[] median_mean = calcMedianAndMean(block_depth, block_size, center);
@@ -203,15 +197,7 @@ public class DigenomeDetect implements AutoCloseable{
         }else if(median_mean[0] > 500 || median_mean[1] > 500){ // on repeat
             skip = true;
         }
-  //    for(int i = center-3; i<center+3; i++){
-  //        if(block_rev_tails[i-1] < block_rev_heads[i-1] || block_rev_tails[i-1] < block_fwd_tails[i]
-  //            || block_fwd_heads[i] < block_rev_heads[i-1] || block_fwd_heads[i] < block_fwd_tails[i]){
-  //                skip = true;
-  //    //  }else if(block_rev_tails[i-1] > 1 && block_fwd_heads[i] > 1 && block_pos[i]-1 == block_pos[i-1]){
-  //    //      skip = false;
-  //            break;
-  //        }
-  //    }
+
         if(debug && !skip){
             System.err.println("-----------------------------------------------------------------------------------");
             System.err.println(block.get(0));
