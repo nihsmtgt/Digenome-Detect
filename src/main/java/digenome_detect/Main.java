@@ -27,7 +27,7 @@ public class Main {
     static int detectWidth = 3;
     static boolean is_siteseq = false;
     static boolean inplaceDepth = false;
-    static boolean inplaceDepth2 = false;
+    static boolean inplaceDepth2 = true;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
