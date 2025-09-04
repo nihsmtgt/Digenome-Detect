@@ -4,7 +4,6 @@ package digenome_detect;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.FileOutputStream;
@@ -183,8 +182,6 @@ public class Main {
           try {
             // do
             Runtime rt = Runtime.getRuntime();
-            // String[] cmd = {digenomeDetectPath, chr, bamPath};
-            // Process proc = rt.exec(cmd);
             ProcessBuilder builder = new ProcessBuilder(digenomeDetectPath, chr, bamPath, mqfilter);
             Process proc = builder.start();
             AutoCloseableThread stdThread = new AutoCloseableThread(proc);

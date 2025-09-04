@@ -5,9 +5,6 @@ import java.lang.Math;
 import java.math.BigInteger;
 import java.util.*;
 import java.lang.AutoCloseable;
-// import java.util.zip.GZIPInputStream;
-import org.apache.commons.math3.distribution.ExponentialDistribution;
-import org.broadinstitute.hellbender.utils.*;
 
 public class DigenomeDetect implements AutoCloseable{
     public static final double LOG_2 = Math.log(2.0);
@@ -20,9 +17,7 @@ public class DigenomeDetect implements AutoCloseable{
     public static boolean relaxed_filter = false;
 
     // numbers greater than 10^MAX_DIGITS_10 or e^MAX_DIGITS_E are considered unsafe ('too big') for floating point operations
-    private static final int MAX_DIGITS_10 = 294;
     private static final int MAX_DIGITS_2 = 977; // ~ MAX_DIGITS_10 * LN(10)/LN(2)
-    private static final int MAX_DIGITS_E = 677; // ~ MAX_DIGITS_10 * LN(10)
 
     static int DETECT_WIDTH = 1;
     public final static int READ_LENGTH = 150;
@@ -324,9 +319,6 @@ public class DigenomeDetect implements AutoCloseable{
                 }
                 return 0;
             }
-            public boolean equals(Comparator<Result> r){
-                return true;
-            }
         };
         // by fisher
         final Comparator fisherComp = new Comparator<Result>(){
@@ -341,9 +333,6 @@ public class DigenomeDetect implements AutoCloseable{
                     return 1;
                 }
                 return 0;
-            }
-            public boolean equals(Comparator<Result> r){
-                return true;
             }
         };
         Result best = candidates.get(0);
