@@ -169,7 +169,7 @@ fn leading_insertions(rec: &Record) -> i64 {
     })
 }
 fn trailing_insertions(rec: &Record) -> i64 {
-    rec.cigar().first().map_or(0, |cigar| {
+    rec.cigar().last().map_or(0, |cigar| {
         if let Cigar::Ins(s) = cigar {
             *s as i64
         }else {
