@@ -11,9 +11,9 @@ public class DigenomeDetect implements AutoCloseable{
     public static final double LOG_10 = Math.log(10.0);
     public boolean is_siteseq = false;
     public static boolean calc_cs = false;
-    public static boolean calc_fisher = true;
+    public static boolean calc_fisher = false;
     public boolean inplace_depth = false;
-    public boolean inplace_depth2 = false;
+    public boolean inplace_depth2 = true;
 
     // numbers greater than 10^MAX_DIGITS_10 or e^MAX_DIGITS_E are considered unsafe ('too big') for floating point operations
     private static final int MAX_DIGITS_2 = 977; // ~ MAX_DIGITS_10 * LN(10)/LN(2)
