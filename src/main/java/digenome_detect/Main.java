@@ -183,7 +183,6 @@ public class Main {
         public void run(){
           try {
             // do
-            Runtime rt = Runtime.getRuntime();
             ProcessBuilder builder = new ProcessBuilder(digenomeDetectPath, chr, bamPath, mqfilter);
             Process proc = builder.start();
             AutoCloseableThread stdThread = new AutoCloseableThread(proc);
