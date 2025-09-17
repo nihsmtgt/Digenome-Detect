@@ -28,6 +28,8 @@ public class Main {
     static boolean is_siteseq = false;
     static boolean inplaceDepth = false;
     static boolean inplaceDepth2 = true;
+    static boolean calc_fisher = false;
+    static boolean calc_cs = false;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
@@ -59,15 +61,15 @@ public class Main {
                     is_siteseq = true;
                 }else if(argv[i].equals("--strandbias")){
                     if(argv[i+1].equals("true")){
-                        DigenomeDetect.calc_fisher = true;
+                        calc_fisher = true;
                     }else {
-                        DigenomeDetect.calc_fisher = false;
+                        calc_fisher = false;
                     }
                 }else if(argv[i].equals("--calc_cleavage_score")){
                     if(argv[i+1].equals("true")){
-                        DigenomeDetect.calc_cs = true;
+                        calc_cs = true;
                     }else {
-                        DigenomeDetect.calc_cs = false;
+                        calc_cs = false;
                     }
                 }else if(argv[i].equals("--mq")){
                     mqfilter = argv[i+1];
@@ -141,6 +143,8 @@ public class Main {
             detect.setInplaceDepth(inplaceDepth);
             detect.setInplaceDepth2(inplaceDepth2);
             detect.setSiteSeq(is_siteseq);
+            detect.setCalcCS(calc_cs);
+            detect.setCalcFisher(calc_fisher);
             detect.setDebug(debug);
         }
         public class AutoCloseableThread extends Thread implements AutoCloseable {

@@ -10,8 +10,8 @@ public class DigenomeDetect implements AutoCloseable{
     public static final double LOG_2 = Math.log(2.0);
     public static final double LOG_10 = Math.log(10.0);
     public boolean is_siteseq = false;
-    public static boolean calc_cs = false;
-    public static boolean calc_fisher = false;
+    public boolean calc_cs = false;
+    public boolean calc_fisher = false;
     public boolean inplace_depth = false;
     public boolean inplace_depth2 = true;
 
