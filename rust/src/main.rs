@@ -37,13 +37,13 @@ fn main() {
 
     match tname.find(":") {
         Some(p) => {
-            bam.fetch(tname.as_str());
-            tname.split_off(p);
+            bam.fetch(tname.as_str()).unwrap();
+            tname.truncate(p);
         },
         None => {
             match header.tid(tname.as_bytes()) {
                 Some(tid) => {
-                    bam.fetch((tname.as_str(), 0, header.target_len(tid).unwrap()));
+                    bam.fetch((tname.as_str(), 0, header.target_len(tid).unwrap())).unwrap();
                 },
                 None => {
                     eprintln!("invalid chromosome {}", tname);
@@ -62,13 +62,13 @@ fn main() {
         let mut fwd_depth = 0;
         let mut softclips = 0;
         let mut mq0 = 0;
-        let mut secondary = 0;
+        //let mut secondary = 0;
         for alignment in pileup.alignments() {
             if alignment.record().mapq() == 0 {
                 mq0 += 1
             }
             if alignment.record().is_secondary() || alignment.record().mapq() == 0 {
-                secondary += 1;
+                //secondary += 1;
                 continue;
             }
             // mq filter
@@ -83,7 +83,7 @@ fn main() {
             let cigar = alignment.record().cigar();
             if alignment.is_head() {
                 if cigar.leading_hardclips() > 0 || cigar.leading_softclips() > 3 || leading_insertions(&alignment.record()) > 0 {
-                    softclips = softclips + 1;
+                    softclips += 1;
                     continue;
                 }
                 match alignment.record().is_reverse() {
@@ -92,7 +92,7 @@ fn main() {
                 }
             }else if alignment.is_tail() {
                 if cigar.trailing_hardclips() > 0 || cigar.trailing_softclips() > 3 || trailing_insertions(&alignment.record()) > 0 {
-                    softclips = softclips + 1;
+                    softclips += 1;
                     continue;
                 }
                 match alignment.record().is_reverse() {
@@ -150,11 +150,11 @@ fn main() {
                             tname, vec_pos[x],  vec_depth[x], vec_forward_heads[x], vec_forward_tails[x], vec_reverse_heads[x], vec_reverse_tails[x], vec_mq0[x], vec_softclips[x], vec_fwd_depth[x], vec_rev_depth[x]);
                     }
                 },
-                None => (println!("bad")),
+                None => println!("bad"),
             }
         }
         println!("//");
-        stdout().flush();
+        stdout().flush().unwrap();
     }
     process::exit(0x00);
 }
