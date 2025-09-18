@@ -82,7 +82,7 @@ fn main() {
             }
             let cigar = alignment.record().cigar();
             if alignment.is_head() {
-                if cigar.leading_hardclips() > 0 || cigar.leading_softclips() > 3 || leading_insertions(&alignment.record()) > 0 {
+                if cigar.leading_hardclips() > 0 || cigar.leading_softclips() > 0 || leading_insertions(&alignment.record()) > 0 {
                     softclips += 1;
                     continue;
                 }
@@ -91,7 +91,7 @@ fn main() {
                     false => forward_heads += 1,
                 }
             }else if alignment.is_tail() {
-                if cigar.trailing_hardclips() > 0 || cigar.trailing_softclips() > 3 || trailing_insertions(&alignment.record()) > 0 {
+                if cigar.trailing_hardclips() > 0 || cigar.trailing_softclips() > 0 || trailing_insertions(&alignment.record()) > 0 {
                     softclips += 1;
                     continue;
                 }
@@ -129,6 +129,7 @@ fn main() {
 
         if (reverse_tails > 3 || forward_heads > 3) && vec_depth.len() > 0 {
             // skip anomalies
+            /*
             if reverse_tails > 3 && (reverse_heads > reverse_tails || reverse_tails < forward_tails) {
                 // eprintln!("skip at type 1 anomaries at {}", pileup.pos());
                 continue;
@@ -136,6 +137,7 @@ fn main() {
                 // eprintln!("skip at type 2 anomaries at {}", pileup.pos());
                 continue;
             }
+            */
             // push hit
             vec_keep.push_back(pileup.pos());
         }
