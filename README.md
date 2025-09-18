@@ -89,7 +89,7 @@ java -Djava.io.tmpdir=./tmp -Duse_async_io_write_samtools=true -Xmx8g \
  ```
 ### analysis
 ```
-java -jar /path/to/install/digenome_detect-1-jar-with-dependencies.jar digenome_detect.Main --inplace-depth2 true --bam Sample_DGS_HAP_NT.realign.bam --out Sample_DGS_HAP_NT.70x --threads 24 > log_NT.txt 2>&1
+java -jar /path/to/install/digenome_detect-1-jar-with-dependencies.jar digenome_detect.Main --bam Sample_DGS_HAP_NT.realign.bam --out Sample_DGS_HAP_NT.70x --threads 24 > log_NT.txt 2>&1
  ```
  This combination of options are used in the published article.
 
@@ -127,14 +127,11 @@ chr2    41666711        41666713        CLSCORE=4.17;DP=77.0;CS=0.01;Ratio=0.889
 - `--control [file]`: Specifies the path to the control BAM file.
 - `--threads, -t [number]`: Specifies the number of threads to use. Default is `8`.
 - `--regions, --region [comma-separated values]`: Specifies target regions like 'chr19:12345..23456'. Use `GRCm` to specify mouse chromosomes. 
-- `--debug`: Enables debug mode.
-- `--siteseq`: Enables siteseq analysis.
-- `--strandbias [true/false]`: Enables or disables Fisher's exact test for evaluating strand bias on cleaved sites.
-- `--calc_cleavage_score [true/false]`: Enables or disables cleavage score calculation.
 - `--mq [number]`: Specifies the minimum mapping quality filter. Default is `0` (i.e. no filter).
 - `--width [number]`: Specifies the detection width, which allows for the inclusion of cleaved sites as well as overhangs. Default is `3`.
-- `--inplace-depth`: Enables in-place depth analysis. If not specified, background depth (depth of out-of-stack reads) is used.
-- `--inplace-depth2`: Enables secondary in-place depth analysis. If not specified, background depth (depth of out-of-stack reads) is used.
+- `--debug`: Enables debug mode.
+- `--strandbias [true/false]`: Enables or disables Fisher's exact test for evaluating strand bias on cleaved sites.
+- `--calc_cleavage_score [true/false]`: Enables or disables cleavage score calculation.
 - `--help`: Displays help information.
 
 ### Examples
