@@ -4,7 +4,6 @@ package digenome_detect;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.FileOutputStream;
@@ -28,7 +27,9 @@ public class Main {
     static int detectWidth = 3;
     static boolean is_siteseq = false;
     static boolean inplaceDepth = false;
-    static boolean inplaceDepth2 = false;
+    static boolean inplaceDepth2 = true;
+    static boolean calc_fisher = false;
+    static boolean calc_cs = false;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
@@ -48,8 +49,6 @@ public class Main {
                     inplaceDepth2 = true;
                 }else if(argv[i].equals("--threads") || argv[i].equals("-t")){
                     threads = Integer.parseInt(argv[i+1]);
-                }else if(argv[i].equals("--relaxed_filter") && argv[i+1].equals("true")){
-                    DigenomeDetect.relaxed_filter = true;
                 }else if(argv[i].equals("--regions") || argv[i].equals("--region")){
                     if(argv[i+1].startsWith("GRCm")){
                         regions = mouse_chromosomes;
@@ -62,15 +61,15 @@ public class Main {
                     is_siteseq = true;
                 }else if(argv[i].equals("--strandbias")){
                     if(argv[i+1].equals("true")){
-                        DigenomeDetect.calc_fisher = true;
+                        calc_fisher = true;
                     }else {
-                        DigenomeDetect.calc_fisher = false;
+                        calc_fisher = false;
                     }
                 }else if(argv[i].equals("--calc_cleavage_score")){
                     if(argv[i+1].equals("true")){
-                        DigenomeDetect.calc_cs = true;
+                        calc_cs = true;
                     }else {
-                        DigenomeDetect.calc_cs = false;
+                        calc_cs = false;
                     }
                 }else if(argv[i].equals("--mq")){
                     mqfilter = argv[i+1];
@@ -144,6 +143,8 @@ public class Main {
             detect.setInplaceDepth(inplaceDepth);
             detect.setInplaceDepth2(inplaceDepth2);
             detect.setSiteSeq(is_siteseq);
+            detect.setCalcCS(calc_cs);
+            detect.setCalcFisher(calc_fisher);
             detect.setDebug(debug);
         }
         public class AutoCloseableThread extends Thread implements AutoCloseable {
@@ -182,9 +183,6 @@ public class Main {
         public void run(){
           try {
             // do
-            Runtime rt = Runtime.getRuntime();
-            // String[] cmd = {digenomeDetectPath, chr, bamPath};
-            // Process proc = rt.exec(cmd);
             ProcessBuilder builder = new ProcessBuilder(digenomeDetectPath, chr, bamPath, mqfilter);
             Process proc = builder.start();
             AutoCloseableThread stdThread = new AutoCloseableThread(proc);

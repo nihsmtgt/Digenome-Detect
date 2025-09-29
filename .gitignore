@@ -1,0 +1,24 @@
+# VS Code 設定（個人環境依存のため通常は除外）
+.vscode/
+
+# Rust
+/target/              
+/rust/target/         
+
+# Java
+*.class               
+target/               
+build/                
+out/                  
+
+plot/*.class
+plot/*.txt
+plot/*.bed
+plot/*.html
+plot/log.txt
+plot/results.bed
+plot/cases.bed
+plot/controls.bed
+
+.DS_Store
+Thumbs.db

@@ -4,8 +4,6 @@ use rust_htslib::bam::Read;
 // use rust_htslib::prelude::*;
 // for cleavage score
 use std::collections::VecDeque;
-use std::fs::File;
-use std::io::LineWriter;
 use std::io::Write;
 use std::io::stdout;
 use rust_htslib::bam::record::Cigar;
@@ -19,18 +17,9 @@ fn main() {
     let argv: Vec<String> = std::env::args().collect();
     let mut tname = String::from(&argv[1]);
     let mqfilter: u8 = String::from(&argv[3]).parse().unwrap();
-    // let mut writer: LineWriter<File> = LineWriter::new(std::fs::File::create(&argv[3]).unwrap());
 
-    // println!("{}", tname);
     let mut bam = bam::IndexedReader::from_path(&argv[2]).unwrap();
-    // let mut bam = bam::IndexedReader::from_path(&"doc/Sample_03.sort.bam").unwrap();
-    // bam.set_threads(2).unwrap();
-    // let header = bam::Header::from_template(bam.header());
-    // let header = bam::HeaderView::from_header(bam.header());
     let header = bam.header();
-
-    // bam.fetch(tid, 0, header.target_len(tid).unwrap()).unwrap();
-    // bam.fetch_str(tname.as_bytes()).unwrap();
 
     // for cleavage score
     let mut vec_depth: VecDeque<u32> = VecDeque::with_capacity(capacity);
@@ -48,13 +37,13 @@ fn main() {
 
     match tname.find(":") {
         Some(p) => {
-            bam.fetch(tname.as_str());
-            tname.split_off(p);
+            bam.fetch(tname.as_str()).unwrap();
+            tname.truncate(p);
         },
         None => {
             match header.tid(tname.as_bytes()) {
                 Some(tid) => {
-                    bam.fetch((tname.as_str(), 0, header.target_len(tid).unwrap()));
+                    bam.fetch((tname.as_str(), 0, header.target_len(tid).unwrap())).unwrap();
                 },
                 None => {
                     eprintln!("invalid chromosome {}", tname);
@@ -73,13 +62,13 @@ fn main() {
         let mut fwd_depth = 0;
         let mut softclips = 0;
         let mut mq0 = 0;
-        let mut secondary = 0;
+        //let mut secondary = 0;
         for alignment in pileup.alignments() {
             if alignment.record().mapq() == 0 {
                 mq0 += 1
             }
             if alignment.record().is_secondary() || alignment.record().mapq() == 0 {
-                secondary += 1;
+                //secondary += 1;
                 continue;
             }
             // mq filter
@@ -93,8 +82,8 @@ fn main() {
             }
             let cigar = alignment.record().cigar();
             if alignment.is_head() {
-                if cigar.leading_hardclips() > 0 || cigar.leading_softclips() > 3 || leading_insertions(&alignment.record()) > 0 {
-                    softclips = softclips + 1;
+                if cigar.leading_hardclips() > 0 || cigar.leading_softclips() > 0 || leading_insertions(&alignment.record()) > 0 {
+                    softclips += 1;
                     continue;
                 }
                 match alignment.record().is_reverse() {
@@ -102,8 +91,8 @@ fn main() {
                     false => forward_heads += 1,
                 }
             }else if alignment.is_tail() {
-                if cigar.trailing_hardclips() > 0 || cigar.trailing_softclips() > 3 || trailing_insertions(&alignment.record()) > 0 {
-                    softclips = softclips + 1;
+                if cigar.trailing_hardclips() > 0 || cigar.trailing_softclips() > 0 || trailing_insertions(&alignment.record()) > 0 {
+                    softclips += 1;
                     continue;
                 }
                 match alignment.record().is_reverse() {
@@ -112,7 +101,7 @@ fn main() {
                 }
             }
         }
-        // let tid = pileup.tid() as usize;
+
         vec_depth.push_back(pileup.depth());
         vec_pos.push_back(pileup.pos());
         vec_forward_heads.push_back(forward_heads);
@@ -123,7 +112,7 @@ fn main() {
         vec_fwd_depth.push_back(fwd_depth);
         vec_rev_depth.push_back(rev_depth);
         vec_softclips.push_back(softclips);
-        // write!(writer, "{} {}\n", vec_depth.len(), capacity as u32).unwrap();
+
         if vec_depth.len() > capacity {
             vec_depth.pop_front();
             vec_pos.pop_front();
@@ -137,18 +126,10 @@ fn main() {
             vec_rev_depth.pop_front();
         }
         // chr22   32563973        111     20      0       0       2       0       89
-        /*
-        if pileup.pos() > 32563970 && pileup.pos() < 32563980 {
-            eprintln!("{} fwd_head {}, fwd_tail {}, rev_head {}, rev_tail {}", pileup.pos(), forward_heads, forward_tails, reverse_heads, reverse_tails);
-            if reverse_tails > 3 && (reverse_heads > reverse_tails || reverse_tails < forward_tails) {
-                eprintln!("continue 1");
-            }else if forward_heads < reverse_heads || forward_heads < forward_tails  { // large forward heads
-                eprintln!("continue 2");
-            }
-        }*/
 
         if (reverse_tails > 3 || forward_heads > 3) && vec_depth.len() > 0 {
             // skip anomalies
+            /*
             if reverse_tails > 3 && (reverse_heads > reverse_tails || reverse_tails < forward_tails) {
                 // eprintln!("skip at type 1 anomaries at {}", pileup.pos());
                 continue;
@@ -156,40 +137,26 @@ fn main() {
                 // eprintln!("skip at type 2 anomaries at {}", pileup.pos());
                 continue;
             }
-            /*
-            if reverse_tails > 3 && (reverse_heads > reverse_tails || reverse_tails < forward_tails || reverse_tails < forward_heads) {
-                continue;
-            }else if forward_heads < reverse_heads || forward_heads < forward_tails || forward_heads < reverse_tails {
-                continue;
-            }*/
+            */
             // push hit
             vec_keep.push_back(pileup.pos());
         }
-        /*
-        match vec_keep.front() {
-            Some(p) => {
-                write!(writer, "{}\n" , vec_keep.front().unwrap()).unwrap()
-            },
-            None => {},
-        }*/
+
         if vec_keep.len() > 0 && vec_keep.front().unwrap() <= &(pileup.pos() - read_length - margin) {
             let pos = vec_keep.pop_front();
-            // write!(writer, "{}\n" , pos.unwrap()).unwrap();
             match pos {
                 Some(p) => {
-                    // write!(writer, "---- len={}, at {}\n", vec_depth.len(), p).unwrap();
                     println!("---- len={}, at {}", vec_depth.len(), p);
                     for x in 0..vec_depth.len() {
                         println!("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
                             tname, vec_pos[x],  vec_depth[x], vec_forward_heads[x], vec_forward_tails[x], vec_reverse_heads[x], vec_reverse_tails[x], vec_mq0[x], vec_softclips[x], vec_fwd_depth[x], vec_rev_depth[x]);
                     }
                 },
-                None => (println!("bad")),
+                None => println!("bad"),
             }
         }
-        // writer.flush().unwrap();
         println!("//");
-        stdout().flush();
+        stdout().flush().unwrap();
     }
     process::exit(0x00);
 }
@@ -204,7 +171,7 @@ fn leading_insertions(rec: &Record) -> i64 {
     })
 }
 fn trailing_insertions(rec: &Record) -> i64 {
-    rec.cigar().first().map_or(0, |cigar| {
+    rec.cigar().last().map_or(0, |cigar| {
         if let Cigar::Ins(s) = cigar {
             *s as i64
         }else {
