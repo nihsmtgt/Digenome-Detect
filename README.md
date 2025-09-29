@@ -69,7 +69,7 @@ java -Djava.io.tmpdir=./tmp -Duse_async_io_write_samtools=true -Xmx8g \
       OPTICAL_DUPLICATE_PIXEL_DISTANCE=2500 \
       REMOVE_DUPLICATES=true
 ```
-　5．Realignment
+　5．(Option) Realignment 
  ```
  java -X32g -jar GenomeAnalysisTK.jar \
    -T RealignerTargetCreator -I \Sample_DGS_HAP_NT.dedup.bam \
@@ -89,7 +89,7 @@ java -Djava.io.tmpdir=./tmp -Duse_async_io_write_samtools=true -Xmx8g \
  ```
 ### analysis
 ```
-java -jar /path/to/install/digenome_detect-1-jar-with-dependencies.jar digenome_detect.Main --bam Sample_DGS_HAP_NT.realign.bam --out Sample_DGS_HAP_NT.70x --threads 24 > log_NT.txt 2>&1
+java -jar /path/to/install/digenome_detect-1-jar-with-dependencies.jar digenome_detect.Main --bam Sample_DGS_HAP_NT.70x.bam --out Sample_DGS_HAP_NT.70x --threads 24 > log_NT.txt 2>&1
  ```
  This combination of options are used in the published article.
 
