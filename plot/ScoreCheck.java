@@ -1,6 +1,17 @@
-import java.io.*;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 class ScoreCheck {
     static double scoreThreshold = 7.0;
@@ -39,6 +50,10 @@ class ScoreCheck {
     }
     ArrayList<Score> cases = new ArrayList<>();
     ArrayList<Score> controls = new ArrayList<>();
+    ArrayList<Score> result = new ArrayList<>();
+    double finalScoreThreshold = 0;
+    static double ratioThreshold = 1.0; 
+
     public ScoreCheck(String casePath, String controlPath, String outputPath) throws IOException{
         this.cases = loadBed(casePath, false);
         System.err.println("Cases: " + this.cases.size() + " points");
@@ -108,6 +123,81 @@ class ScoreCheck {
         }
         return filtered;
     }
+
+    // filter redundant scores within a sample
+    public static ArrayList<Score> filterRedundantScores3(ArrayList<Score> scores){
+        // sort by chromosome position order
+        Collections.sort(scores);
+        
+        ArrayList<Score> filtered = new ArrayList<>();
+        int highestpos = 0;
+        boolean redundant = false;
+        // remove adjuscent scores located within 10 bases
+        for(int i = 0; i < scores.size() - 1; i++){
+            Score s1 = scores.get(i);
+            Score s2 = scores.get(i+1);
+            // remove both scores;
+            if(s1.chrom.equals(s2.chrom) && Math.abs(s2.start - s1.start) < 10){
+                if (redundant) {
+                    if (s2.score > scores.get(highestpos).score) {
+                        scores.get(highestpos).toRemove = true;
+                        highestpos = i+1;                      
+                    }
+                    else{
+                        scores.get(i+1).toRemove = true;
+                    }
+                }
+                else{
+                // remove lower score
+                System.err.println("removing redundant " + s1.chrom + ":" + s1.start + "-" + s1.end + "\t" + s1.score);
+                if (s1.score > s2.score) {
+                    scores.get(i+1).toRemove = true;
+                    highestpos =  i;                   
+                }
+                else{
+                    scores.get(i).toRemove = true;
+                    highestpos = i+1;
+                }
+                redundant = true;
+                }
+            }
+            else{
+                redundant = false;
+            }
+        }
+        for(Score s : scores){
+            if(!s.toRemove){
+                filtered.add(s);
+            }
+        }
+        return filtered;
+    }
+
+    // filter redundant scores between samples (always remove both sides of a close pair)
+    public static ArrayList<Score> filterRedundantScores4(ArrayList<Score> scores){
+    // sort by chromosome position order
+    Collections.sort(scores);
+
+    // mark both as toRemove if two adjacent scores are within 10 bases on the same chrom
+    for (int i = 0; i < scores.size() - 1; i++) {
+        Score s1 = scores.get(i);
+        Score s2 = scores.get(i + 1);
+        if (s1.chrom.equals(s2.chrom) && Math.abs(s2.start - s1.start) < 10) {
+            s1.toRemove = true;
+            s2.toRemove = true;
+        }
+    }
+
+    // build filtered list
+    ArrayList<Score> filtered = new ArrayList<>();
+    for (Score s : scores) {
+        if (!s.toRemove) {
+            filtered.add(s);
+        }
+    }
+    return filtered;
+}
+
     // filter redundant scores within a sample
     public static ArrayList<Score> filterRedundantScores(ArrayList<Score> scores){
         // sort by chromosome position order
@@ -174,8 +264,8 @@ class ScoreCheck {
         this.cases = filterLowQualityScores(this.cases, scoreThreshold);
         this.controls = filterLowQualityScores(this.controls, scoreThreshold);
         // filter redundant(adjacent) scores
-        this.cases = filterRedundantScores(this.cases);
-        this.controls = filterRedundantScores(this.controls);
+        this.cases = filterRedundantScores3(this.cases);
+        this.controls = filterRedundantScores3(this.controls);
         // merge data
         ArrayList<Score> merged = new ArrayList<>();
         merged.addAll(this.cases);
@@ -183,7 +273,7 @@ class ScoreCheck {
         // sort by position
         Collections.sort(merged);
         // filter redundant(adjacent) scores
-        merged = filterRedundantScores2(merged);
+        merged = filterRedundantScores4(merged);
         // split and filter by if(mq0 + clips > fwdHead || mq0 + clips > revTail) 
         this.cases = new ArrayList<>();
         this.controls = new ArrayList<>();
@@ -211,7 +301,7 @@ class ScoreCheck {
         Collections.sort(this.cases);
         Collections.sort(this.controls);
         try (
-            FileWriter fw = new FileWriter("cases.bed");
+            FileWriter fw = new FileWriter(this.outputPath + "cases.bed");
             BufferedWriter bw = new BufferedWriter(fw);
             PrintWriter pw = new PrintWriter(bw))
         {
@@ -222,7 +312,7 @@ class ScoreCheck {
             }
         }
         try (
-            FileWriter fw = new FileWriter("controls.bed");
+            FileWriter fw = new FileWriter(this.outputPath + "controls.bed");
             BufferedWriter bw = new BufferedWriter(fw);
             PrintWriter pw = new PrintWriter(bw))
         {
@@ -258,7 +348,7 @@ class ScoreCheck {
         StringWriter sw = new StringWriter();
         if (this.outputPath != null) {
             try {
-                bw = new BufferedWriter(new FileWriter(this.outputPath));
+                bw = new BufferedWriter(new FileWriter(this.outputPath + "plotdata.txt"));
                 bw2 = new BufferedWriter(sw = new StringWriter());
             } catch (IOException e) {
                 e.printStackTrace();
@@ -274,6 +364,7 @@ class ScoreCheck {
         Collections.sort(uniqueScores, Collections.reverseOrder());
 
         // iterate for each 25 unique scores of cases
+        boolean isOverThreshold = false;
         for (int i = 0; i < uniqueScores.size(); i += 1) {
             List<Score> subcases = new ArrayList<>();
             List<Score> subcontrols = new ArrayList<>();
@@ -297,7 +388,13 @@ class ScoreCheck {
             // calculate the ratio of subcases and subcontrols
             double ratio = (double) subcontrols.size() / (double) subcases.size();
             double percentage = (double) subcases.size() / (double) (subcases.size() + subcontrols.size());
-    
+            
+            if(!isOverThreshold && ratioThreshold <= ratio){
+                isOverThreshold = true;
+                finalScoreThreshold = min;
+            }else {
+            }
+
             // output the score intervals of cases and count of cases and controls and its ratio and percentage
             if (bw == null) {
                 System.out.println(min + "\t" + max + "\t" + subcases.size() + "\t" + subcontrols.size() + "\t" + ratio + "\t" + percentage);
@@ -320,8 +417,32 @@ class ScoreCheck {
                 System.exit(1);
             }
         }
+
+        // output final result
+
+        for(Score s : this.cases){
+            if (s.score <= finalScoreThreshold) {
+                continue;
+            }
+            else if(!s.isControl){
+                this.result.add(s);
+            }
+        }
+        try (
+            FileWriter fw = new FileWriter(this.outputPath + "results.bed");
+            BufferedWriter bw3 = new BufferedWriter(fw);
+            PrintWriter pw = new PrintWriter(bw3))
+        {
+            // print header
+            pw.println("#chrom\tstart\tend\tscore\tclips\tmq0\tfwdHead\trevTail");
+            for(Score s : this.result){
+                pw.println(s.chrom + "\t" + s.start + "\t" + s.end + "\t" + s.score + "\t" + s.clips + "\t" + s.mq0 + "\t" + s.fwdHead + "\t" + s.revTail);
+            }
+            System.out.println("threshold: " + finalScoreThreshold);
+        }
+
         if (this.outputPath != null) {
-            String htmlOut = this.outputPath.replaceAll(".txt", ".html");
+            String htmlOut = this.outputPath + "plot.html";
             try {
                 BufferedWriter htmlWriter = new BufferedWriter(new FileWriter(htmlOut));
                 if(separatedGraph){
@@ -344,9 +465,8 @@ class ScoreCheck {
     
         for (String line : lines) {
             String[] parts = line.split("\\t");
-            double middleScore = (Double.parseDouble(parts[0]) + Double.parseDouble(parts[1])) / 2;
-    
-            xValues.append("'").append(middleScore).append("',");
+            double minScore = Double.parseDouble(parts[0]);    
+            xValues.append("'").append(minScore).append("',");
             ratioYValues.append(parts[4]).append(",");
             percentageYValues.append(parts[5]).append(",");
         }
@@ -499,19 +619,21 @@ class ScoreCheck {
             if(args.length < 2){
                 System.err.println("Usage: java ScoreCheck [--mq0 <mq0>] [--clips <clips>] [--debug] <case.bed> <control.bed>");
                 System.err.println("     --threshold: filter for low quality scores (default: 7.0)");
+                System.err.println("     --ratio_threshold: minimum score of the score range with sample/control ratio below this value becomes final CLSCORE threshold (default: 1)");
                 System.exit(1);
             }
             for(int i = 0; i<args.length-1; i++){
                 if(args[i].equals("--out")){
                     outputPath = args[i+1];
-                    i++;
                 }
-                if(args[i].equals("--threshold")){
+                else if(args[i].equals("--threshold")){
                     scoreThreshold = Double.parseDouble(args[i+1]);
-                    i++;
                 }
-                if(args[i].equals("--debug")){
+                else if(args[i].equals("--debug")){
                     debug = true;
+                }
+                else if(args[i].equals("--ratio_threshold")){
+                    ratioThreshold = Double.parseDouble(args[i+1]);
                 }
             }
             ScoreCheck sc = new ScoreCheck(args[args.length-2], args[args.length-1], outputPath);
