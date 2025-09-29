@@ -1,14 +1,14 @@
-# Digenome-detect
-Digenome-Seq analysis tool
+# Digenome-Detect
+Digenome-seq analysis tool
 
 ## Summary
-digenome-detect is a tool for detection of Digenome-Seq cleavage site.
+Digenome-Detect is a tool for detection of Digenome-seq cleavage site.
 
 ## Install
 
 ### Prerequisite
 - OS: Linux
-  - We tested this system on CentOS7 and CentOS8
+  - We tested this system on CentOS7, CentOS8 and Ubuntu 24.04 LTS
 - Rust
   - Install Rust programming language from https://www.rust-lang.org/tools/install
 - Java17
@@ -34,7 +34,7 @@ cp target/digenome_detect-1-jar-with-dependencies.jar /path/to/install
 ## Typical Analysis Workflow
 
 ### Preparation
-Digenome-detect can analyze BAM files prepared for genotyping according to the GATK best practice. However, please note that the duplicated reads should be removed completely from BAM files before this analysis. 
+Digenome-Detect can analyze BAM files. Please note that the duplicated reads should be removed from BAM files before this analysis. 
 
   1. Map FastQ files to Reference Genome
 ```
