@@ -1,6 +1,6 @@
 # ScoreCheck
 
-ScoreCheck is a Java program designed to process and analyze results of Digenome-detect. 
+ScoreCheck is a Java program designed to process and analyze results of Digenome-Detect. 
 It filters and analyzes data based on various quality metrics and outputs the results.
 
 ## Features
@@ -30,7 +30,7 @@ java ScoreCheck [options] <case.bed> <control.bed>
 - --debug: Enable debug mode to dump scores to log.
 
 ## Input Files
-Two bed files of result of Digenome-detect for RGEN and CONTROL. 
+Two bed files of result of Digenome-Detect for RGEN and CONTROL. 
 
 ## Output
 The program outputs:
