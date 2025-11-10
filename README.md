@@ -17,7 +17,7 @@ Digenome-Detect is a tool for detection of Digenome-seq cleavage site.
 ### Build and Install
 + Download the source code from GitHub
 ```
-git clone https://github.com/nihsmtgt/Digenome-detect.git
+git clone https://github.com/nihsmtgt/Digenome-Detect.git
 ```
 + Build and install
 ```
