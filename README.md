@@ -21,7 +21,7 @@ git clone https://github.com/nihsmtgt/Digenome-Detect.git
 ```
 + Build and install
 ```
-cd Digenome-detect/rust
+cd Digenome-Detect/rust
 cargo build
 cp target/debug/digenome_seek /usr/local/bin
 cd ..
