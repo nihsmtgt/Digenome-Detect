@@ -36,7 +36,7 @@ cp target/digenome_detect-1-jar-with-dependencies.jar /path/to/install
 ### Preparation
 Digenome-Detect can analyze BAM files. Please note that the duplicated reads should be removed from BAM files before this analysis. 
 
-  1. Map FastQ files to Reference Genome
+  1. Map FASTQ files to Reference Genome
 ```
 /usr/local/bwa-0.7.15/bwa mem -t 20 -P -M \
     -R "@RG\tID:1\tSM:Sample_DGS_HAP_NT\tPL:ILLUMINA" \
@@ -91,7 +91,7 @@ java -Djava.io.tmpdir=./tmp -Duse_async_io_write_samtools=true -Xmx8g \
 ```
 java -jar /path/to/install/digenome_detect-1-jar-with-dependencies.jar digenome_detect.Main --bam Sample_DGS.bam --out Sample_DGS --threads 24 > log.txt 2>&1
  ```
- This combination of options are used in the article.
+ This combination of options are used in the article.  
  The typical runtime for the example data (human genome, 70× coverage) is approximately 2 hour.
 
 ## Result
