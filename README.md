@@ -19,7 +19,7 @@ Digenome-Detect is a tool for detection of Digenome-seq cleavage site.
 ```
 git clone https://github.com/nihsmtgt/Digenome-Detect.git
 ```
-+ Build and install
++ Build and install (Typical installation time: < 5 minutes)
 ```
 cd Digenome-Detect/rust
 cargo build
@@ -89,9 +89,10 @@ java -Djava.io.tmpdir=./tmp -Duse_async_io_write_samtools=true -Xmx8g \
  ```
 ### analysis
 ```
-java -jar /path/to/install/digenome_detect-1-jar-with-dependencies.jar digenome_detect.Main --bam Sample_DGS_HAP_NT.70x.bam --out Sample_DGS_HAP_NT.70x --threads 24 > log_NT.txt 2>&1
+java -jar /path/to/install/digenome_detect-1-jar-with-dependencies.jar digenome_detect.Main --bam Sample_DGS.bam --out Sample_DGS --threads 24 > log.txt 2>&1
  ```
- This combination of options are used in the published article.
+ This combination of options are used in the article.
+ The typical runtime for the example data (human genome, 70× coverage) is approximately 2 hour.
 
 ## Result
 The result files are generated for each chromosome.
