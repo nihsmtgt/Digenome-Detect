@@ -1,5 +1,6 @@
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -69,6 +70,21 @@ class ScoreCheck {
     }
     public static ArrayList<Score> loadBed(String path, boolean isControl) throws IOException{
        ArrayList<Score> scores = new ArrayList<>();
+       File input = new File(path);
+       if(input.isDirectory()){
+           File[] files = input.listFiles();
+           if(files != null){
+               Arrays.sort(files);
+               for(File child : files){
+                   if(child.isDirectory()){
+                       scores.addAll(loadBed(child.getPath(), isControl));
+                   } else if(child.isFile()){
+                       scores.addAll(loadBed(child.getPath(), isControl));
+                   }
+               }
+           }
+           return scores;
+       }
        try ( BufferedReader br = new BufferedReader(new FileReader(path))) {
             String line = "";
             while((line = br.readLine()) != null){
@@ -84,12 +100,10 @@ class ScoreCheck {
                 }
                 try {
                     double clscore = Double.parseDouble(info.get("CLSCORE"));
-                    // filter: MQ0+ CLIPS > FwdHead or MQ0 + CLIPS > RevTail or CLSCORE < 6.0
                     int clips = Integer.parseInt(info.get("CLIPS"));
                     int mq0 = Integer.parseInt(info.get("MQ0"));
                     int fwdHead = Integer.parseInt(info.get("FwdHead"));
                     int revTail = Integer.parseInt(info.get("RevTail"));
-                    // if(mq0 + clips > fwdHead || mq0 + clips > revTail) continue;
 
                     Score s = new Score(chrom, start, end, clscore, clips, mq0, fwdHead, revTail, isControl);
                     scores.add(s);
@@ -616,7 +630,8 @@ class ScoreCheck {
             String outputPath = null;
             boolean debug = false;
             if(args.length < 2){
-                System.err.println("Usage: java ScoreCheck [--threshold <threshold>] [--MQ0ClipsThreshold <mq0clips_threshold>] [--ratio_threshold <ratio_threshold>] [--debug] <case.bed> <control.bed>");
+                System.err.println("Usage: java ScoreCheck [--out <outputDir>] [--threshold <threshold>] [--MQ0ClipsThreshold <mq0clips_threshold>] [--ratio_threshold <ratio_threshold>] [--debug] <case.bed|caseDir> <control.bed|controlDir>");
+                System.err.println("     --out: output directory path prefix for generated files");
                 System.err.println("     --threshold: filter for low quality scores (default: 7.0)");
                 System.err.println("     --MQ0ClipsThreshold: filter for low quality sites (default: 1.0)");
                 System.err.println("     --ratio_threshold: minimum score of the score range with sample/control ratio below this value becomes final CLSCORE threshold (default: 1)");
