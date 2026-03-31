@@ -441,10 +441,6 @@ class ScoreCheck {
                     subcontrols.addAll(groupedControls.get(score));
                 }
             }
-            if(subcontrols.size() == 0) {
-                System.err.println("No controls found for " + min + " to " + max);
-                // continue;
-            }
             // calculate the ratio of subcases and subcontrols
             double ratio = (double) subcontrols.size() / (double) subcases.size();
             double percentage = (double) subcases.size() / (double) (subcases.size() + subcontrols.size());
@@ -476,6 +472,10 @@ class ScoreCheck {
                 e.printStackTrace();
                 System.exit(1);
             }
+        }
+
+        if (!isOverThreshold) {
+            System.err.println("No score interval met the ratio threshold; finalScoreThreshold remains " + finalScoreThreshold + ". Lower the minimum score threshold value may resolve this.");
         }
 
         // output final result
@@ -677,28 +677,29 @@ class ScoreCheck {
             String outputPath = null;
             boolean debug = false;
             if(args.length < 2){
-                System.err.println("Usage: java ScoreCheck [--out <outputDir>] [--threshold <threshold>] [--MQ0ClipsThreshold <mq0clips_threshold>] [--ratio_threshold <ratio_threshold>] [--debug] <case.bed|caseDir> <control.bed|controlDir>");
-                System.err.println("     --out: output directory path prefix for generated files");
-                System.err.println("     --threshold: filter for low quality scores (default: 7.0)");
-                System.err.println("     --MQ0ClipsThreshold: filter for low quality sites (default: 1.0)");
-                System.err.println("     --ratio_threshold: minimum score of the score range with sample/control ratio below this value becomes final CLSCORE threshold (default: 1)");
+                System.err.println("Usage: java ScoreCheck [--output <outputDir> | -o <outputDir>] [--threshold <threshold> | -t <threshold>] [--mq0-clips-threshold <mq0clips_threshold> | -m <mq0clips_threshold>] [--ratio-threshold <ratio_threshold> | -r <ratio_threshold>] [--debug | -d] <case.bed|caseDir> <control.bed|controlDir>");
+                System.err.println("     --output, -o: output directory prefix for generated files");
+                System.err.println("     --minimum-score, -min: minimum CLSCORE to filter out (default: 7.0)");
+                System.err.println("     --mq0-clips-threshold, -mq0: threshold for MQ0+CLIPS relative to FwdHead/RevTail (default: 1.0)");
+                System.err.println("     --ratio-threshold, -r: case/control ratio used to decide final score threshold (default: 1.0)");
+                System.err.println("     --debug, -d: print loaded scores for debugging");
                 System.exit(1);
             }
             for(int i = 0; i<args.length-1; i++){
-                if(args[i].equals("--out")){
+                if(args[i].equals("--output") || args[i].equals("-o")){
                     outputPath = args[i+1];
                 }
-                else if(args[i].equals("--threshold")){
+                else if(args[i].equals("--minimum-score") || args[i].equals("-min")){
                     scoreThreshold = Double.parseDouble(args[i+1]);
                 }
-                else if(args[i].equals("--MQ0ClipsThreshold")){
+                else if(args[i].equals("--mq0-clips-threshold") || args[i].equals("-mq0")){
                     MQ0ClipsThreshold = Double.parseDouble(args[i+1]);
                 }
-                else if(args[i].equals("--debug")){
-                    debug = true;
-                }
-                else if(args[i].equals("--ratio_threshold")){
+                else if(args[i].equals("--ratio-threshold") || args[i].equals("-r")){
                     ratioThreshold = Double.parseDouble(args[i+1]);
+                }
+                else if(args[i].equals("--debug") || args[i].equals("-d")){
+                    debug = true;
                 }
             }
             ScoreCheck sc = new ScoreCheck(args[args.length-2], args[args.length-1], outputPath);
