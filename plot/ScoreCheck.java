@@ -11,8 +11,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 class ScoreCheck {
     static double scoreThreshold = 7.0;
@@ -68,6 +70,42 @@ class ScoreCheck {
         String filename = tokens[tokens.length-1];
         return filename.replaceAll(".txt", "");
     }
+    private static boolean isBedFile(File file){
+        return file.getName().toLowerCase().endsWith(".bed");
+    }
+    private static void validateBedFile(File file) throws IOException{
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            String line = br.readLine();
+            if(line == null){
+                System.err.println("Invalid BED file (empty): " + file.getPath());
+                System.exit(1);
+            }
+            String[] tokens = line.split("\t");
+            if(tokens.length < 4){
+                System.err.println("Invalid BED file (missing required fields): " + file.getPath());
+                System.exit(1);
+            }
+            try{
+                Integer.parseInt(tokens[1]);
+                Integer.parseInt(tokens[2]);
+            } catch(NumberFormatException e){
+                System.err.println("Invalid BED file (start/end not integer): " + file.getPath());
+                System.exit(1);
+            }
+            String[] infos = tokens[3].split(";");
+            Set<String> keys = new HashSet<>();
+            for(String info : infos){
+                String[] kv = info.split("=", 2);
+                if(kv.length == 2){
+                    keys.add(kv[0]);
+                }
+            }
+            if(!keys.contains("CLSCORE") || !keys.contains("CLIPS") || !keys.contains("MQ0") || !keys.contains("FwdHead") || !keys.contains("RevTail")){
+                System.err.println("Invalid BED file (missing required info keys): " + file.getPath());
+                System.exit(1);
+            }
+        }
+    }
     public static ArrayList<Score> loadBed(String path, boolean isControl) throws IOException{
        ArrayList<Score> scores = new ArrayList<>();
        File input = new File(path);
@@ -84,6 +122,13 @@ class ScoreCheck {
                }
            }
            return scores;
+       }
+       if(input.isFile() && !isBedFile(input)){
+           System.err.println("Skipping non-BED file: " + input.getPath());
+           return scores;
+       }
+       if(input.isFile()){
+           validateBedFile(input);
        }
        try ( BufferedReader br = new BufferedReader(new FileReader(path))) {
             String line = "";
@@ -289,9 +334,11 @@ class ScoreCheck {
         Collections.sort(merged);
         // filter redundant(adjacent) scores
         merged = filterRedundantScores4(merged);
+        this.cases.clear();
+        this.controls.clear();
         // split and filter by if(mq0 + clips > fwdHead || mq0 + clips > revTail) 
         for(Score s : merged){
-            if ((s.mq0 + s.clips) / s.fwdHead > MQ0ClipsThreshold || (s.mq0 + s.clips) / s.revTail > MQ0ClipsThreshold) {
+            if (((s.mq0 + s.clips) * MQ0ClipsThreshold) > s.fwdHead || ((s.mq0 + s.clips) * MQ0ClipsThreshold) > s.revTail) {
                 continue;
             }
             if(s.isControl){
