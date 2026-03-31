@@ -15,6 +15,7 @@ import java.util.Map;
 
 class ScoreCheck {
     static double scoreThreshold = 7.0;
+    static double MQ0ClipsThreshold = 1.0;
     String outputPath = null;
     boolean separatedGraph = false;
     public static class Score implements Comparable<Score>{
@@ -275,10 +276,8 @@ class ScoreCheck {
         // filter redundant(adjacent) scores
         merged = filterRedundantScores4(merged);
         // split and filter by if(mq0 + clips > fwdHead || mq0 + clips > revTail) 
-        this.cases = new ArrayList<>();
-        this.controls = new ArrayList<>();
         for(Score s : merged){
-            if (s.mq0 + s.clips > s.fwdHead || s.mq0 + s.clips > s.revTail) {
+            if ((s.mq0 + s.clips) / s.fwdHead > MQ0ClipsThreshold || (s.mq0 + s.clips) / s.revTail > MQ0ClipsThreshold) {
                 continue;
             }
             if(s.isControl){
@@ -617,8 +616,9 @@ class ScoreCheck {
             String outputPath = null;
             boolean debug = false;
             if(args.length < 2){
-                System.err.println("Usage: java ScoreCheck [--mq0 <mq0>] [--clips <clips>] [--debug] <case.bed> <control.bed>");
+                System.err.println("Usage: java ScoreCheck [--threshold <threshold>] [--MQ0ClipsThreshold <mq0clips_threshold>] [--ratio_threshold <ratio_threshold>] [--debug] <case.bed> <control.bed>");
                 System.err.println("     --threshold: filter for low quality scores (default: 7.0)");
+                System.err.println("     --MQ0ClipsThreshold: filter for low quality sites (default: 1.0)");
                 System.err.println("     --ratio_threshold: minimum score of the score range with sample/control ratio below this value becomes final CLSCORE threshold (default: 1)");
                 System.exit(1);
             }
@@ -628,6 +628,9 @@ class ScoreCheck {
                 }
                 else if(args[i].equals("--threshold")){
                     scoreThreshold = Double.parseDouble(args[i+1]);
+                }
+                else if(args[i].equals("--MQ0ClipsThreshold")){
+                    MQ0ClipsThreshold = Double.parseDouble(args[i+1]);
                 }
                 else if(args[i].equals("--debug")){
                     debug = true;
