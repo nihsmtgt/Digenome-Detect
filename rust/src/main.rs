@@ -17,6 +17,7 @@ fn main() {
     let argv: Vec<String> = std::env::args().collect();
     let mut tname = String::from(&argv[1]);
     let mqfilter: u8 = String::from(&argv[3]).parse().unwrap();
+    let readendfilter: u32 = String::from(&argv[4]).parse().unwrap();
 
     let mut bam = bam::IndexedReader::from_path(&argv[2]).unwrap();
     let header = bam.header();
@@ -127,7 +128,7 @@ fn main() {
         }
         // chr22   32563973        111     20      0       0       2       0       89
 
-        if (reverse_tails > 3 || forward_heads > 3) && vec_depth.len() > 0 {
+        if (reverse_tails >= readendfilter || forward_heads >= readendfilter) && vec_depth.len() > 0 {
             // skip anomalies
             /*
             if reverse_tails > 3 && (reverse_heads > reverse_tails || reverse_tails < forward_tails) {
