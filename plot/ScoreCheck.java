@@ -56,7 +56,7 @@ class ScoreCheck {
     ArrayList<Score> controls = new ArrayList<>();
     ArrayList<Score> result = new ArrayList<>();
     double finalScoreThreshold = 0;
-    static double ratioThreshold = 1.0; 
+    static double ratioThreshold = 0.1; 
 
     public ScoreCheck(String casePath, String controlPath, String outputPath) throws IOException{
         this.cases = loadBed(casePath, false);
@@ -383,8 +383,6 @@ class ScoreCheck {
             }
         }
 
-        System.err.println("Remaining Case Number: " + this.cases.size());
-        System.err.println("Remaining Control Number: " + this.controls.size());
     /* 
         // sort cases and controls by clscore
         Collections.sort(cases, new Comparator<Score>() {
@@ -415,49 +413,75 @@ class ScoreCheck {
                 System.exit(1);
             }
         }
-        // Group scores by their value for both cases and controls
-        Map<Double, List<Score>> groupedCases = groupScoresByValue(this.cases);
-        Map<Double, List<Score>> groupedControls = groupScoresByValue(this.controls);
+        // sort cases and controls by score desc for cumulative threshold scanning
+        ArrayList<Score> casesByScore = new ArrayList<>(this.cases);
+        ArrayList<Score> controlsByScore = new ArrayList<>(this.controls);
+        Collections.sort(casesByScore, new Comparator<Score>(){
+            @Override
+            public int compare(Score s1, Score s2){
+                if(s1.score > s2.score) return -1;
+                else if(s1.score < s2.score) return 1;
+                else return 0;
+            }
+        });
+        Collections.sort(controlsByScore, new Comparator<Score>(){
+            @Override
+            public int compare(Score s1, Score s2){
+                if(s1.score > s2.score) return -1;
+                else if(s1.score < s2.score) return 1;
+                else return 0;
+            }
+        });
 
-        // Extract unique scores and sort them
-        List<Double> uniqueScores = new ArrayList<>(groupedCases.keySet());
-        Collections.sort(uniqueScores, Collections.reverseOrder());
+        double maxScore = 0.0;
+        if(!casesByScore.isEmpty()) {
+            maxScore = Math.max(maxScore, casesByScore.get(0).score);
+        }
+        if(!controlsByScore.isEmpty()) {
+            maxScore = Math.max(maxScore, controlsByScore.get(0).score);
+        }
 
-        // iterate for each 25 unique scores of cases
+        int startHundredths = (int) Math.ceil(maxScore * 100.0);
+        int endHundredths = (int) Math.ceil(scoreThreshold * 100.0);
+
         boolean isOverThreshold = false;
-        for (int i = 0; i < uniqueScores.size(); i += 1) {
-            List<Score> subcases = new ArrayList<>();
-            List<Score> subcontrols = new ArrayList<>();
+        int casesCount = 0;
+        int controlsCount = 0;
+        int caseIndex = 0;
+        int controlIndex = 0;
 
-            double max = uniqueScores.get(i);
-            double min = (i + 24 < uniqueScores.size()) ? uniqueScores.get(i + 24) : uniqueScores.get(uniqueScores.size() - 1);
+        for (int h = startHundredths; h >= endHundredths; h--) {
+            double scoreThresholdValue = h / 100.0;
 
-            for (int j = i; j < i + 25 && j < uniqueScores.size(); j++) {
-                subcases.addAll(groupedCases.get(uniqueScores.get(j)));
+            while (caseIndex < casesByScore.size() && casesByScore.get(caseIndex).score >= scoreThresholdValue) {
+                caseIndex++;
+            }
+            while (controlIndex < controlsByScore.size() && controlsByScore.get(controlIndex).score >= scoreThresholdValue) {
+                controlIndex++;
             }
 
-            for (Double score : groupedControls.keySet()) {
-                if (score >= min && score <= max) {
-                    subcontrols.addAll(groupedControls.get(score));
-                }
+            casesCount = caseIndex;
+            controlsCount = controlIndex;
+
+            if (casesCount == 0) {
+                continue;
             }
-            // calculate the ratio of subcases and subcontrols
-            double ratio = (double) subcontrols.size() / (double) subcases.size();
-            double percentage = (double) subcases.size() / (double) (subcases.size() + subcontrols.size());
+
+            double ratio = (double) controlsCount / (double) casesCount;
+            double percentage = (double) casesCount / (double) (casesCount + controlsCount);
             
             if(!isOverThreshold && ratioThreshold <= ratio){
                 isOverThreshold = true;
-                finalScoreThreshold = min;
-            }else {
+                finalScoreThreshold = scoreThresholdValue+0.01; // add 0.01 to make it the next hundredth above the current threshold
             }
 
-            // output the score intervals of cases and count of cases and controls and its ratio and percentage
+            String thresholdString = String.format("%.2f", scoreThresholdValue);
             if (bw == null) {
-                System.out.println(min + "\t" + max + "\t" + subcases.size() + "\t" + subcontrols.size() + "\t" + ratio + "\t" + percentage);
+                System.out.println(thresholdString + "\t" + casesCount + "\t" + controlsCount + "\t" + ratio + "\t" + percentage);
             } else {
                 try {
-                    bw.write(min + "\t" + max + "\t" + subcases.size() + "\t" + subcontrols.size() + "\t" + ratio + "\t" + percentage + "\n");
-                    bw2.write(min + "\t" + max + "\t" + subcases.size() + "\t" + subcontrols.size() + "\t" + ratio + "\t" + percentage + "\n");
+                    bw.write(thresholdString + "\t" + casesCount + "\t" + controlsCount + "\t" + ratio + "\t" + percentage + "\n");
+                    bw2.write(thresholdString + "\t" + casesCount + "\t" + controlsCount + "\t" + ratio + "\t" + percentage + "\n");
                 } catch (IOException e) {
                     e.printStackTrace();
                     System.exit(1);
@@ -525,10 +549,10 @@ class ScoreCheck {
     
         for (String line : lines) {
             String[] parts = line.split("\\t");
-            double minScore = Double.parseDouble(parts[0]);    
-            xValues.append("'").append(minScore).append("',");
-            ratioYValues.append(parts[4]).append(",");
-            percentageYValues.append(parts[5]).append(",");
+            double threshold = Double.parseDouble(parts[0]);
+            xValues.append("'").append(threshold).append("',");
+            ratioYValues.append(parts[3]).append(",");
+            percentageYValues.append(parts[4]).append(",");
         }
     
         return "<html>\n" +
@@ -545,7 +569,7 @@ class ScoreCheck {
             "  mode: 'lines+markers',\n" +
             "  type: 'scatter'\n" +
             "};\n" +
-            "var layout1 = { xaxis: { range: [ 0, 50 ] }, yaxis: { range: [0, 3] }, height: 700 };\n" +
+            "var layout1 = { xaxis: { range: [ 0, 50 ] }, yaxis: { range: [0, 1] }, height: 700 };\n" +
             "var data1 = [trace1];\n" +
             "Plotly.newPlot('myDiv1', data1, layout1);\n" +
             "</script>\n" +
@@ -583,26 +607,16 @@ class ScoreCheck {
 
         for (String line : lines) {
             String[] parts = line.split("\\t");
+            double threshold = Double.parseDouble(parts[0]);
 
-            // Calculate bin center
-            String[] binBounds = { parts[0], parts[1] };
-            if (binBounds.length == 1) {
-                System.err.println("Error: binBounds length is 1. Check input file format." + parts[0]);
-                System.exit(1);
-            }
-            // Calculate bin center
-            double binCenter = (Double.parseDouble(binBounds[0]) + Double.parseDouble(binBounds[1])) / 2;
-            // 有効桁数4桁に丸める
-            binCenter = Math.round(binCenter * 10000.0) / 10000.0;
+            dataPointsRatio.add("{x: " + threshold + ", y: " + parts[3] + "},");
+            dataPointsPercentage.add("{x: " + threshold + ", y: " + parts[4] + "},");
 
-            dataPointsRatio.add("{x: " + binCenter + ", y: " + parts[4] + "},");
-            dataPointsPercentage.add("{x: " + binCenter + ", y: " + parts[5] + "},");
-
-            labels.add("'" + String.valueOf(binCenter) + "'");
-            binCenterLabels.add(String.valueOf(binCenter));
-            ratioData.add(parts[4]);
-            percentageData.add(parts[5]);
-            tooltipData.add("{label: 'Subcases: " + parts[2] + ", Subcontrols: " + parts[3] + "'},");
+            labels.add("'" + String.valueOf(threshold) + "'");
+            binCenterLabels.add(String.valueOf(threshold));
+            ratioData.add(parts[3]);
+            percentageData.add(parts[4]);
+            tooltipData.add("{label: 'Cases: " + parts[1] + ", Controls: " + parts[2] + "'},");
         }
 
         String dataPointsRatioStr = String.join(",", dataPointsRatio);
