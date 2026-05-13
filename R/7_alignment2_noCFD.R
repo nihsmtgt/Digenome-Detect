@@ -7,7 +7,7 @@ sgRNAseq_seed = sgRNAseq[(length(sgRNAseq) - seedlength + 1):(length(sgRNAseq))]
 PAMambiguous = nchar(PAM) - sum(str_count(as.character(PAM), DNA_BASES))
 
 #alignment parameter
-submat = pwalign::nucleotideSubstitutionMatrix()
+submat = nucleotideSubstitutionMatrix()
 submat[submat == 0] = -1
 submat[submat > 0] = 0
 gapOpening = 0
@@ -23,10 +23,11 @@ Alignment = function(pattern, subject) {
   )
 }
 
+i=1
 #main
 data2 = foreach(
   i = 1:nrow(data),
-  .packages = c("Biostrings", "tidyverse", "crisprScore"),
+  .packages = c("Biostrings", "tidyverse", "pwalign"),
   .combine = dplyr::bind_rows
 ) %dopar% {
   seq= as.character(data[i, "seq"]) |> DNAString()
@@ -133,17 +134,6 @@ data2 = foreach(
     seedins = nindel(salign)@insertion[, "WidthSum"],
     seeddel = nindel(salign)@deletion[, "WidthSum"]
   )
-  if (str_length(temp$spacer) == 20 & str_length(temp$PAM_2) == 3) {
-    temp = mutate(temp, CFD = as.double(
-      getCFDScores(
-        str_trunc(as.character(sgRNAseq), 20, side = "left", ellipsis=""), #"TCTGCTGGCGAACCACAACA"
-        as.character(spacer),
-        as.character(PAM_2)
-      )[3]
-    ))
-  }  else{
-    temp = mutate(temp, CFD = -1)
-  }
   temp
 }
 
