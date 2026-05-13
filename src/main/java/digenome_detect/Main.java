@@ -22,6 +22,7 @@ public class Main {
     static String digenomeDetectPath = "/usr/local/bin/digenome_seek";
     static int threads = 8;
     static String mqfilter = "0";
+    static String readendfilter = "4";
     static String[] regions = null;
     static boolean debug = false;
     static int detectWidth = 3;
@@ -75,6 +76,8 @@ public class Main {
                     mqfilter = argv[i+1];
                 }else if(argv[i].equals("--width")){
                     detectWidth = Integer.parseInt(argv[i+1]);
+                }else if(argv[i].equals("--minreadend")){
+                    readendfilter = argv[i+1];
                 }else if(argv[i].equals("--help")){
                     System.out.println("Usage:");
                     System.out.println("     java digenome_detect.Main --out [output prefix] --bam [bam file]");
@@ -183,7 +186,7 @@ public class Main {
         public void run(){
           try {
             // do
-            ProcessBuilder builder = new ProcessBuilder(digenomeDetectPath, chr, bamPath, mqfilter);
+            ProcessBuilder builder = new ProcessBuilder(digenomeDetectPath, chr, bamPath, mqfilter, readendfilter);
             Process proc = builder.start();
             AutoCloseableThread stdThread = new AutoCloseableThread(proc);
             stdThread.start();

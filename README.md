@@ -122,6 +122,9 @@ chr2    41666711        41666713        CLSCORE=4.17;DP=77.0;CS=0.01;Ratio=0.889
 - `CONTROL`: When `--control [bam file]` is used, control counts at the same position are reported
 - `CONTROL_CLSCORE`: When `--control [bam file]` is used, the control CLSCORE at the same position is reported
 
+## Downstream analysis
+For downstream analysis, false positive filtering and CL-score threshold determination can be performed using [`plot/ScoreCheck.java`](plot/ScoreCheck.java) in this repository. (see the [`plot/README.md`](plot/README.md) for usage details).
+
 ## Command-Line Options
 
 ### Required
@@ -129,11 +132,12 @@ chr2    41666711        41666713        CLSCORE=4.17;DP=77.0;CS=0.01;Ratio=0.889
 - `--out [prefix]`: output prefix for generated files
 
 ### Optional
-- `--control [file]`: control BAM file
 - `--threads, -t [number]`: number of threads (default `8`)
 - `--regions, --region [comma-separated values]`: target regions like `chr19:12345..23456` or `chr1, chr2, chr3` (default `human chromosomes (chr1-22, X, Y)`)
 - `--mq [number]`: minimum mapping quality filter (default `0`)
 - `--width [number]`: detection width (default `3`)
+- `--minreadend [number]`: minimum number of read ends for CL-score calculation (default: `4`)
+- `--control [file]`: control BAM file
 - `--debug`: enable debug mode
 - `--strandbias [true/false]`: enable or disable Fisher's exact test
 - `--calc_cleavage_score [true/false]`: enable or disable cleavage score calculation
