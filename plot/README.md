@@ -26,6 +26,7 @@ java ScoreCheck [options] <case.bed|caseDir> <control.bed|controlDir>
 ```
 
 ## Options
+
 - `--output <outputDir>` or `-o <outputDir>`: Output directory prefix for generated files. Include a trailing slash if you want the files written into a directory, e.g. `./scorecheck_out/`.
 - `--minimum-score <threshold>` or `-min <threshold>`: Minimum `CLSCORE` to keep (default: `7.0`).
 - `--mq0-clips-threshold <value>` or `-mq0 <value>`: Quality filter threshold for `MQ0 + CLIPS` relative to `FwdHead`/`RevTail` (default: `1.0`).

@@ -16,11 +16,11 @@ Digenome-Detect is a tool for detecting Digenome-seq cleavage sites from BAM fil
 ### Build and Install
 + Download the source code from GitHub
 ```
-git clone https://github.com/nihsmtgt/Digenome-detect.git
+git clone https://github.com/nihsmtgt/Digenome-Detect.git
 ```
-+ Build and install
++ Build and install (Typical installation time: < 5 minutes)
 ```
-cd Digenome-detect/rust
+cd Digenome-Detect/rust
 cargo build
 cp target/debug/digenome_seek /usr/local/bin
 cd ..
@@ -35,7 +35,7 @@ cp target/digenome_detect-1-jar-with-dependencies.jar /path/to/install
 ### Preparation
 Digenome-Detect can analyze BAM files. Please note that the duplicated reads should be removed from BAM files before this analysis. 
 
-  1. Map FastQ files to Reference Genome
+  1. Map FASTQ files to Reference Genome
 ```
 /usr/local/bwa-0.7.15/bwa mem -t 20 -P -M \
     -R "@RG\tID:1\tSM:Sample_DGS_HAP_NT\tPL:ILLUMINA" \
@@ -98,9 +98,10 @@ samtools index Sample_DGS_HAP_NT.subsample.bam
 ```
 ### Analysis
 ```
-java -jar /path/to/install/digenome_detect-1-jar-with-dependencies.jar digenome_detect.Main --bam Sample_DGS_HAP_NT.70x.bam --out Sample_DGS_HAP_NT.70x --threads 24 > log_NT.txt 2>&1
+java -jar /path/to/install/digenome_detect-1-jar-with-dependencies.jar digenome_detect.Main --bam Sample_DGS.bam --out Sample_DGS --threads 24 > log.txt 2>&1
  ```
- This combination of options are used in the published article.
+ This combination of options are used in the article.  
+ The typical runtime for the example data (human genome, 70× coverage) is approximately 2 hour.
 
 ## Result
 The result files are generated for each chromosome.
