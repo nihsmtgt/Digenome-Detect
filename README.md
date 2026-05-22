@@ -139,25 +139,20 @@ For downstream analysis, false positive filtering and CL-score threshold determi
 - `--minreadend [number]`: minimum number of read ends for CL-score calculation (default: `4`)
 - `--control [file]`: control BAM file
 - `--debug`: enable debug mode
-- `--strandbias [true/false]`: enable or disable Fisher's exact test
-- `--calc_cleavage_score [true/false]`: enable or disable cleavage score calculation
+- `--strandbias [true/false]`: enable or disable Fisher's exact test (default: `false`)
+- `--calc_cleavage_score [true/false]`: enable or disable cleavage score calculation (default: `false`)
 - `--help`: show help information
 
 ### Examples
 
 Run the program with a BAM file and output prefix:
 ```bash
-java digenome_detect.Main --bam input.bam --out output_prefix
+java --jar digenome_detect-1-jar-with-dependencies.jar --bam input.bam --out output_prefix
 ```
 
 Run with 4 threads and specific regions:
 ```bash
-java digenome_detect.Main --bam input.bam --out output_prefix --threads 4 --regions "chr1,chr2,chr3"
-```
-
-Enable debug mode:
-```bash
-java digenome_detect.Main --bam input.bam --out output_prefix --debug
+java --jar digenome_detect-1-jar-with-dependencies.jar --bam input.bam --out output_prefix --threads 4 --regions "chr1,chr2,chr3,chr4"
 ```
 
 ## Notes
