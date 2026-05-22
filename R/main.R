@@ -3,16 +3,19 @@ library(Biostrings)
 library(doParallel)
 library(ggplot2)
 library(tidyverse)
-
-# preference
-output="Sample_DGS_HAP_SIDT1.70x_toolkit2.5" # prefix of output file name
-mypath="./input" # path of input files
-NTprefix = "_NT" #string which is only in the Negative control file name
-
-sample2_th=2.5 #digenome-toolkit threshold
+library(pwalign)
 
 #reference genome
 refGenome=readDNAStringSet("~/workspace/hg38/hg38.fa.bgz") # read reference genome
+
+# preference
+output="Sample_DGS_HAP_SIDT1.70x" # prefix of output file name
+mypath="./input/70x" # path of input files
+NTprefix = "_NT" #string which is only in the Negative control file name
+
+sample2_th=2.5 #digenome-toolkit threshold
+lowestCL = 7
+FDR=0.1
 
 #genome editing tool
 PAM = DNAString("NGG")
@@ -29,7 +32,7 @@ if(doGGGenome ==T){
   gg = read_csv("./SIDT1_d6_new.csv.gz") #GGGenome search result
 }
 
-cores <- 24 # No. of thread used
+cores <- 40 # No. of thread used
 
 #main
 cl <- makeCluster(cores)
@@ -44,7 +47,7 @@ if(ToolkitComparison == T){
 source("./1_BedtoCsv.R", echo = T)
 source("./2_deduplication.R", echo = T)
 output=paste0(output, "_distinct_filt")
-source("./3_threshold.R", echo = T)
+source("./3_threshold_2.R", echo = T)
 
 #comparison
 if(ToolkitComparison == T){
@@ -59,7 +62,7 @@ if(doGGGenome == T){
   source("./6_referGGGenome.R", echo = T)
   output=paste0(output, "_gg")
 }
-source("7_alignment2.R", echo = T)
+source("7_alignment2_noCFD.R", echo = T)
 
 stopCluster(cl)
 

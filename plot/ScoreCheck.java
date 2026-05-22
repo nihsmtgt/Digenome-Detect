@@ -1,5 +1,6 @@
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -10,11 +11,14 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 class ScoreCheck {
     static double scoreThreshold = 7.0;
+    static double MQ0ClipsThreshold = 1.0;
     String outputPath = null;
     boolean separatedGraph = false;
     public static class Score implements Comparable<Score>{
@@ -52,7 +56,7 @@ class ScoreCheck {
     ArrayList<Score> controls = new ArrayList<>();
     ArrayList<Score> result = new ArrayList<>();
     double finalScoreThreshold = 0;
-    static double ratioThreshold = 1.0; 
+    static double ratioThreshold = 0.1; 
 
     public ScoreCheck(String casePath, String controlPath, String outputPath) throws IOException{
         this.cases = loadBed(casePath, false);
@@ -66,8 +70,66 @@ class ScoreCheck {
         String filename = tokens[tokens.length-1];
         return filename.replaceAll(".txt", "");
     }
+    private static boolean isBedFile(File file){
+        return file.getName().toLowerCase().endsWith(".bed");
+    }
+    private static void validateBedFile(File file) throws IOException{
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            String line = br.readLine();
+            if(line == null){
+                System.err.println("Invalid BED file (empty): " + file.getPath());
+                System.exit(1);
+            }
+            String[] tokens = line.split("\t");
+            if(tokens.length < 4){
+                System.err.println("Invalid BED file (missing required fields): " + file.getPath());
+                System.exit(1);
+            }
+            try{
+                Integer.parseInt(tokens[1]);
+                Integer.parseInt(tokens[2]);
+            } catch(NumberFormatException e){
+                System.err.println("Invalid BED file (start/end not integer): " + file.getPath());
+                System.exit(1);
+            }
+            String[] infos = tokens[3].split(";");
+            Set<String> keys = new HashSet<>();
+            for(String info : infos){
+                String[] kv = info.split("=", 2);
+                if(kv.length == 2){
+                    keys.add(kv[0]);
+                }
+            }
+            if(!keys.contains("CLSCORE") || !keys.contains("CLIPS") || !keys.contains("MQ0") || !keys.contains("FwdHead") || !keys.contains("RevTail")){
+                System.err.println("Invalid BED file (missing required info keys): " + file.getPath());
+                System.exit(1);
+            }
+        }
+    }
     public static ArrayList<Score> loadBed(String path, boolean isControl) throws IOException{
        ArrayList<Score> scores = new ArrayList<>();
+       File input = new File(path);
+       if(input.isDirectory()){
+           File[] files = input.listFiles();
+           if(files != null){
+               Arrays.sort(files);
+               for(File child : files){
+                   if(child.isDirectory()){
+                       scores.addAll(loadBed(child.getPath(), isControl));
+                   } else if(child.isFile()){
+                       scores.addAll(loadBed(child.getPath(), isControl));
+                   }
+               }
+           }
+           return scores;
+       }
+       if(input.isFile() && !isBedFile(input)){
+           System.err.println("Skipping non-BED file: " + input.getPath());
+           return scores;
+       }
+       if(input.isFile()){
+           validateBedFile(input);
+       }
        try ( BufferedReader br = new BufferedReader(new FileReader(path))) {
             String line = "";
             while((line = br.readLine()) != null){
@@ -83,12 +145,10 @@ class ScoreCheck {
                 }
                 try {
                     double clscore = Double.parseDouble(info.get("CLSCORE"));
-                    // filter: MQ0+ CLIPS > FwdHead or MQ0 + CLIPS > RevTail or CLSCORE < 6.0
                     int clips = Integer.parseInt(info.get("CLIPS"));
                     int mq0 = Integer.parseInt(info.get("MQ0"));
                     int fwdHead = Integer.parseInt(info.get("FwdHead"));
                     int revTail = Integer.parseInt(info.get("RevTail"));
-                    // if(mq0 + clips > fwdHead || mq0 + clips > revTail) continue;
 
                     Score s = new Score(chrom, start, end, clscore, clips, mq0, fwdHead, revTail, isControl);
                     scores.add(s);
@@ -274,11 +334,11 @@ class ScoreCheck {
         Collections.sort(merged);
         // filter redundant(adjacent) scores
         merged = filterRedundantScores4(merged);
+        this.cases.clear();
+        this.controls.clear();
         // split and filter by if(mq0 + clips > fwdHead || mq0 + clips > revTail) 
-        this.cases = new ArrayList<>();
-        this.controls = new ArrayList<>();
         for(Score s : merged){
-            if (s.mq0 + s.clips > s.fwdHead || s.mq0 + s.clips > s.revTail) {
+            if (((s.mq0 + s.clips) * MQ0ClipsThreshold) > s.fwdHead || ((s.mq0 + s.clips) * MQ0ClipsThreshold) > s.revTail) {
                 continue;
             }
             if(s.isControl){
@@ -323,8 +383,6 @@ class ScoreCheck {
             }
         }
 
-        System.err.println("Remaining Case Number: " + this.cases.size());
-        System.err.println("Remaining Control Number: " + this.controls.size());
     /* 
         // sort cases and controls by clscore
         Collections.sort(cases, new Comparator<Score>() {
@@ -355,53 +413,75 @@ class ScoreCheck {
                 System.exit(1);
             }
         }
-        // Group scores by their value for both cases and controls
-        Map<Double, List<Score>> groupedCases = groupScoresByValue(this.cases);
-        Map<Double, List<Score>> groupedControls = groupScoresByValue(this.controls);
+        // sort cases and controls by score desc for cumulative threshold scanning
+        ArrayList<Score> casesByScore = new ArrayList<>(this.cases);
+        ArrayList<Score> controlsByScore = new ArrayList<>(this.controls);
+        Collections.sort(casesByScore, new Comparator<Score>(){
+            @Override
+            public int compare(Score s1, Score s2){
+                if(s1.score > s2.score) return -1;
+                else if(s1.score < s2.score) return 1;
+                else return 0;
+            }
+        });
+        Collections.sort(controlsByScore, new Comparator<Score>(){
+            @Override
+            public int compare(Score s1, Score s2){
+                if(s1.score > s2.score) return -1;
+                else if(s1.score < s2.score) return 1;
+                else return 0;
+            }
+        });
 
-        // Extract unique scores and sort them
-        List<Double> uniqueScores = new ArrayList<>(groupedCases.keySet());
-        Collections.sort(uniqueScores, Collections.reverseOrder());
+        double maxScore = 0.0;
+        if(!casesByScore.isEmpty()) {
+            maxScore = Math.max(maxScore, casesByScore.get(0).score);
+        }
+        if(!controlsByScore.isEmpty()) {
+            maxScore = Math.max(maxScore, controlsByScore.get(0).score);
+        }
 
-        // iterate for each 25 unique scores of cases
+        int startHundredths = (int) Math.ceil(maxScore * 100.0);
+        int endHundredths = (int) Math.ceil(scoreThreshold * 100.0);
+
         boolean isOverThreshold = false;
-        for (int i = 0; i < uniqueScores.size(); i += 1) {
-            List<Score> subcases = new ArrayList<>();
-            List<Score> subcontrols = new ArrayList<>();
+        int casesCount = 0;
+        int controlsCount = 0;
+        int caseIndex = 0;
+        int controlIndex = 0;
 
-            double max = uniqueScores.get(i);
-            double min = (i + 24 < uniqueScores.size()) ? uniqueScores.get(i + 24) : uniqueScores.get(uniqueScores.size() - 1);
+        for (int h = startHundredths; h >= endHundredths; h--) {
+            double scoreThresholdValue = h / 100.0;
 
-            for (int j = i; j < i + 25 && j < uniqueScores.size(); j++) {
-                subcases.addAll(groupedCases.get(uniqueScores.get(j)));
+            while (caseIndex < casesByScore.size() && casesByScore.get(caseIndex).score >= scoreThresholdValue) {
+                caseIndex++;
+            }
+            while (controlIndex < controlsByScore.size() && controlsByScore.get(controlIndex).score >= scoreThresholdValue) {
+                controlIndex++;
             }
 
-            for (Double score : groupedControls.keySet()) {
-                if (score >= min && score <= max) {
-                    subcontrols.addAll(groupedControls.get(score));
-                }
+            casesCount = caseIndex;
+            controlsCount = controlIndex;
+
+            if (casesCount == 0) {
+                continue;
             }
-            if(subcontrols.size() == 0) {
-                System.err.println("No controls found for " + min + " to " + max);
-                // continue;
-            }
-            // calculate the ratio of subcases and subcontrols
-            double ratio = (double) subcontrols.size() / (double) subcases.size();
-            double percentage = (double) subcases.size() / (double) (subcases.size() + subcontrols.size());
+
+            double ratio = (double) controlsCount / (double) casesCount;
+            double percentage = (double) casesCount / (double) (casesCount + controlsCount);
             
             if(!isOverThreshold && ratioThreshold <= ratio){
                 isOverThreshold = true;
-                finalScoreThreshold = min;
-            }else {
+                finalScoreThreshold = scoreThresholdValue+0.01; // add 0.01 to make it the next hundredth above the current threshold
             }
 
-            // output the score intervals of cases and count of cases and controls and its ratio and percentage
+            String thresholdString = String.format("%.2f", scoreThresholdValue);
             if (bw == null) {
-                System.out.println(min + "\t" + max + "\t" + subcases.size() + "\t" + subcontrols.size() + "\t" + ratio + "\t" + percentage);
+                System.out.println(thresholdString + "\t" + casesCount + "\t" + controlsCount + "\t" + ratio + "\t" + percentage);
             } else {
                 try {
-                    bw.write(min + "\t" + max + "\t" + subcases.size() + "\t" + subcontrols.size() + "\t" + ratio + "\t" + percentage + "\n");
-                    bw2.write(min + "\t" + max + "\t" + subcases.size() + "\t" + subcontrols.size() + "\t" + ratio + "\t" + percentage + "\n");
+                    bw.write(thresholdString + "\t" + casesCount + "\t" + controlsCount + "\t" + ratio + "\t" + percentage + "\n");
+                    bw2.write(thresholdString + "\t" + casesCount + "\t" + controlsCount + "\t" + ratio + "\t" + percentage + "\n");
                 } catch (IOException e) {
                     e.printStackTrace();
                     System.exit(1);
@@ -416,6 +496,10 @@ class ScoreCheck {
                 e.printStackTrace();
                 System.exit(1);
             }
+        }
+
+        if (!isOverThreshold) {
+            System.err.println("No score interval met the ratio threshold; finalScoreThreshold remains " + finalScoreThreshold + ". Lower the minimum score threshold value may resolve this.");
         }
 
         // output final result
@@ -465,10 +549,10 @@ class ScoreCheck {
     
         for (String line : lines) {
             String[] parts = line.split("\\t");
-            double minScore = Double.parseDouble(parts[0]);    
-            xValues.append("'").append(minScore).append("',");
-            ratioYValues.append(parts[4]).append(",");
-            percentageYValues.append(parts[5]).append(",");
+            double threshold = Double.parseDouble(parts[0]);
+            xValues.append("'").append(threshold).append("',");
+            ratioYValues.append(parts[3]).append(",");
+            percentageYValues.append(parts[4]).append(",");
         }
     
         return "<html>\n" +
@@ -485,7 +569,7 @@ class ScoreCheck {
             "  mode: 'lines+markers',\n" +
             "  type: 'scatter'\n" +
             "};\n" +
-            "var layout1 = { xaxis: { range: [ 0, 50 ] }, yaxis: { range: [0, 3] }, height: 700 };\n" +
+            "var layout1 = { xaxis: { range: [ 0, 50 ] }, yaxis: { range: [0, 1] }, height: 700 };\n" +
             "var data1 = [trace1];\n" +
             "Plotly.newPlot('myDiv1', data1, layout1);\n" +
             "</script>\n" +
@@ -523,26 +607,16 @@ class ScoreCheck {
 
         for (String line : lines) {
             String[] parts = line.split("\\t");
+            double threshold = Double.parseDouble(parts[0]);
 
-            // Calculate bin center
-            String[] binBounds = { parts[0], parts[1] };
-            if (binBounds.length == 1) {
-                System.err.println("Error: binBounds length is 1. Check input file format." + parts[0]);
-                System.exit(1);
-            }
-            // Calculate bin center
-            double binCenter = (Double.parseDouble(binBounds[0]) + Double.parseDouble(binBounds[1])) / 2;
-            // 有効桁数4桁に丸める
-            binCenter = Math.round(binCenter * 10000.0) / 10000.0;
+            dataPointsRatio.add("{x: " + threshold + ", y: " + parts[3] + "},");
+            dataPointsPercentage.add("{x: " + threshold + ", y: " + parts[4] + "},");
 
-            dataPointsRatio.add("{x: " + binCenter + ", y: " + parts[4] + "},");
-            dataPointsPercentage.add("{x: " + binCenter + ", y: " + parts[5] + "},");
-
-            labels.add("'" + String.valueOf(binCenter) + "'");
-            binCenterLabels.add(String.valueOf(binCenter));
-            ratioData.add(parts[4]);
-            percentageData.add(parts[5]);
-            tooltipData.add("{label: 'Subcases: " + parts[2] + ", Subcontrols: " + parts[3] + "'},");
+            labels.add("'" + String.valueOf(threshold) + "'");
+            binCenterLabels.add(String.valueOf(threshold));
+            ratioData.add(parts[3]);
+            percentageData.add(parts[4]);
+            tooltipData.add("{label: 'Cases: " + parts[1] + ", Controls: " + parts[2] + "'},");
         }
 
         String dataPointsRatioStr = String.join(",", dataPointsRatio);
@@ -617,23 +691,29 @@ class ScoreCheck {
             String outputPath = null;
             boolean debug = false;
             if(args.length < 2){
-                System.err.println("Usage: java ScoreCheck [--mq0 <mq0>] [--clips <clips>] [--debug] <case.bed> <control.bed>");
-                System.err.println("     --threshold: filter for low quality scores (default: 7.0)");
-                System.err.println("     --ratio_threshold: minimum score of the score range with sample/control ratio below this value becomes final CLSCORE threshold (default: 1)");
+                System.err.println("Usage: java ScoreCheck [--output <outputDir> | -o <outputDir>] [--threshold <threshold> | -t <threshold>] [--mq0-clips-threshold <mq0clips_threshold> | -m <mq0clips_threshold>] [--ratio-threshold <ratio_threshold> | -r <ratio_threshold>] [--debug | -d] <case.bed|caseDir> <control.bed|controlDir>");
+                System.err.println("     --output, -o: output directory prefix for generated files");
+                System.err.println("     --minimum-score, -min: minimum CLSCORE to filter out (default: 7.0)");
+                System.err.println("     --mq0-clips-threshold, -mq0: threshold for MQ0+CLIPS relative to FwdHead/RevTail (default: 1.0)");
+                System.err.println("     --ratio-threshold, -r: case/control ratio used to decide final score threshold (default: 1.0)");
+                System.err.println("     --debug, -d: print loaded scores for debugging");
                 System.exit(1);
             }
             for(int i = 0; i<args.length-1; i++){
-                if(args[i].equals("--out")){
+                if(args[i].equals("--output") || args[i].equals("-o")){
                     outputPath = args[i+1];
                 }
-                else if(args[i].equals("--threshold")){
+                else if(args[i].equals("--minimum-score") || args[i].equals("-min")){
                     scoreThreshold = Double.parseDouble(args[i+1]);
                 }
-                else if(args[i].equals("--debug")){
-                    debug = true;
+                else if(args[i].equals("--mq0-clips-threshold") || args[i].equals("-mq0")){
+                    MQ0ClipsThreshold = Double.parseDouble(args[i+1]);
                 }
-                else if(args[i].equals("--ratio_threshold")){
+                else if(args[i].equals("--ratio-threshold") || args[i].equals("-r")){
                     ratioThreshold = Double.parseDouble(args[i+1]);
+                }
+                else if(args[i].equals("--debug") || args[i].equals("-d")){
+                    debug = true;
                 }
             }
             ScoreCheck sc = new ScoreCheck(args[args.length-2], args[args.length-1], outputPath);
