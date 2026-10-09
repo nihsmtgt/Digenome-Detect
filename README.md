@@ -21,8 +21,8 @@ git clone https://github.com/nihsmtgt/Digenome-Detect.git
 + Build and install (Typical installation time: < 5 minutes)
 ```
 cd Digenome-Detect/rust
-cargo build
-cp target/debug/digenome_seek /usr/local/bin
+cargo build --release
+cp target/release/digenome_seek /usr/local/bin
 cd ..
 mvn compile
 mvn package
